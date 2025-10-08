@@ -1,0 +1,32 @@
+services:
+  search_engine:
+    image: docker.io/searxng/searxng:latest
+    ports:
+      - 8888:8080
+    volumes:
+      - ./config/:/etc/searxng/
+      - ./data/:/var/cache/searxng/
+
+  scrape_app:
+    build: 
+      context: ./scraper_app
+    ports:
+      - 8000:8000
+    depends_on:
+      - search_engine
+
+  # frontend: 
+  #   build: 
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #   - 5173:5173
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     - search_engine
+  #   command: npm run dev -- --host 0.0.0.0
+
+
+
