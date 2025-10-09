@@ -144,7 +144,32 @@ class Scraper():
         
         return results
         
-        
+async def search(query, categories):
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            # res = await client.get(f"http://search_engine:8080/search?q={query}&categories={categories}&format=json")
+            res = await client.get("http://search_engine:8080/search", 
+                                    params={
+                                        "q": query,
+                                        "categories": categories,
+                                        "format": "json"
+                                    })
+            return res.json()
+    
+    except Exception as e: 
+        print(f"Search failed: {e}")
+        return {"results": []}
+    
+async def search_and_scrape(query, categories, data=None, maxURL=10):
+    
+    if not data: 
+        data = await search(query, categories)
+    urls = [page["url"] for page in data["results"] if page.get("url")][:maxURL]
+    
+    scraper = Scraper()
+    results = await scraper.scrape_multiple(urls=urls)  
+      
+    return results
     
 # if __name__ == "__main__":
     

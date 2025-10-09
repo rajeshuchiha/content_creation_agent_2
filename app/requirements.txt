@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+httpx
+beautifulsoup4
+playwright
+python-multipart
+langchain
+langgraph
+langchain-core
+langchain-google-genai
