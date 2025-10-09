@@ -27,7 +27,6 @@ class AgentState(TypedDict):
        
 def run_document_agent(inputs=None, auto=False, categories=None):  
     
-    
     @tool 
     def update(tweet: str, blog_post: str, reddit_post: str) -> dict:
         """Updates the document with tweet, blog_post and reddit_post"""
