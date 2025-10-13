@@ -2,6 +2,7 @@ import httpx
 import bs4
 from playwright.async_api import async_playwright
 import asyncio
+import re
 
 class Scraper():
 
@@ -26,6 +27,12 @@ class Scraper():
             await self.browser.close()
         if self.playwright:
             await self.playwright.stop()
+            
+    def process(self, text):
+        cleaned = re.sub(r"[^a-zA-Z0-9\s.,!?;:\'\"-]", "", text)
+    # Clean up multiple spaces
+        cleaned = re.sub(r"\s+", " ", cleaned)
+        return cleaned.strip()
 
     async def scrape_with_bs4(self, url):
 
@@ -49,9 +56,10 @@ class Scraper():
                 return {
                     "url": url,
                     "title": soup.title.string if soup.title else '',
-                    "text": content,    
+                    "text": content[:10000],
                     "method": "beautifulsoup",
-                    "success": True
+                    "success": True,
+                    "error": None
                 }
                 
         except Exception as e:
@@ -67,23 +75,29 @@ class Scraper():
             await asyncio.sleep(2)
             
             text = await page.inner_text('body')
+            text = await self.process(text)
+            
             title = await page.title()
+            title = await self.process(title)
             
             await page.close()
             
             return {
                 "url": url,
                 "title": title,
-                "text": text,    
+                "text": text[:10000],
                 "method": "playwright",
-                "success": True
+                "success": True,
+                "error": None
             }
             
         except Exception as e:
             print(f"Playwright failed: {e}")
             return {
                 'url': url,
-                'error': str(e),
+                'title': '',       
+                'text': '',        
+                'error': str(e)[:500],  
                 'method': 'playwright',
                 'success': False
             }
@@ -110,7 +124,9 @@ class Scraper():
         
         if result.get('success'):
             print(f"Playwright worked! Content length: {len(result.get('text', ''))}")
-        
+        else:
+            print(f"Playwright failed for: {url}")
+            
         return result
         
     async def scrape_multiple(self, urls):
@@ -138,9 +154,11 @@ class Scraper():
         #       f"Failed={stats['failed']}")
         
         # #   For parallel (Comment Above and Uncomment below)
-        results = await asyncio.gather(*[self.scrape_url(url) for url in urls]) #   "*" for unpacking {list is seen as single obj} .gather(list) => .gather(coroutine1, co2, co3 etc)
+        try:  
+            results = await asyncio.gather(*[self.scrape_url(url) for url in urls]) #   "*" for unpacking {list is seen as single obj} .gather(list) => .gather(coroutine1, co2, co3 etc)
         
-        await self._cleanup_playwright()
+        finally:
+            await self._cleanup_playwright()
         
         return results
         
@@ -154,6 +172,7 @@ async def search(query, categories):
                                         "categories": categories,
                                         "format": "json"
                                     })
+            res.raise_for_status()
             return res.json()
     
     except Exception as e: 

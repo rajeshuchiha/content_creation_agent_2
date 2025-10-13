@@ -1,8 +1,9 @@
 import os
 import requests
-from dotenv import load_dotenv
+import json
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
 data = {
     "grant_type": "password",
@@ -27,11 +28,11 @@ headers = {"Authorization": f"bearer {bearer_token}", "User-Agent": "ChangeMeCli
 # print(response.json())
 
 # Compulsory keys for data. !!! Change "sr" to desired subreddit.
-def postReddit(sr="r/test", title = "New Post", text="Place_holder"):
+def postReddit(sr="test", title = "New Post", text="Place_holder"):
     
     if not title:
         print("Reddit post has NULL title.")
-        return
+        return  
 
     if not text:
         print("Reddit post has NULL content.")
@@ -42,12 +43,12 @@ def postReddit(sr="r/test", title = "New Post", text="Place_holder"):
             "kind": "self",
             "title": title,
             "text": text
-    }    
+        }    
 
     response = requests.post(
         "https://oauth.reddit.com/api/submit", 
-        data=data,
-        headers=headers
+        headers=headers,
+        data=data
     )
     
     response.raise_for_status()

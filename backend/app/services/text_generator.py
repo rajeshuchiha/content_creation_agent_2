@@ -9,14 +9,15 @@ from langgraph.prebuilt import ToolNode
 # import os
 import time
 import json
-from dotenv import load_dotenv
-from generation.blogger import postBlog
-from generation.tweet import postTweet
-from generation.reddit import postReddit
-import asyncio
-from app.scraper import search, search_and_scrape
 
-load_dotenv()
+from .platforms.blogger_service import postBlog
+from .platforms.tweet_service import postTweet
+from .platforms.reddit_service import postReddit
+import asyncio
+from scraper import search, search_and_scrape
+
+# from dotenv import load_dotenv
+# load_dotenv()
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
@@ -26,6 +27,8 @@ class AgentState(TypedDict):
     input_index: int
        
 def run_document_agent(inputs=None, auto=False, categories=None):  
+    
+    # time.sleep(2)   #   Pause at start 
     
     @tool 
     def update(tweet: str, blog_post: str, reddit_post: str) -> dict:
@@ -50,6 +53,7 @@ def run_document_agent(inputs=None, auto=False, categories=None):
                         and emojis 😃🔥✨ when relevant.
                         
             blog_post (str): A detailed and informative blog_post of atleast 250 words, expanding on the tweets theme.
+            reddit_post (str): JSON string with 'title' and 'body'; 'body' supports Markdown
         """
         
         time.sleep(1)
@@ -76,6 +80,7 @@ def run_document_agent(inputs=None, auto=False, categories=None):
             body = reddit_post_dict['body']
   
             postReddit(title=title, text=body)
+            print("Reddit posted Successfully!")
                 
         except Exception as e:
             print(f"Reddit posting failed: {str(e)}")
@@ -106,7 +111,7 @@ def run_document_agent(inputs=None, auto=False, categories=None):
         time.sleep(1)
         
         data = asyncio.run(search(query, categories=categories))
-        scraped_data = asyncio.run(search_and_scrape(query, categories=categories, data=data, maxURL=10))
+        scraped_data = asyncio.run(search_and_scrape(query, categories=categories, data=data, maxURL=5))
         
         # data["results"] -> format
         # "url": "https://finance.yahoo.com/news/buy-cryptocurrency-xrp-while-under-091500196.html?fr=sycsrp_catchall",
@@ -122,7 +127,7 @@ def run_document_agent(inputs=None, auto=False, categories=None):
                 results.append(f'title: {result["title"]}\ncontent: {result["content"]}\n')
         
         results.append("Scraped Results: \n")
-        for result in scraped_data:
+        for result in scraped_data:         #   If you want first search to be latest (last in content) use "reversed(scraped_data)"
             if result.get('text'):
                 results.append(f'title: {result["title"]}\ncontent: {result["text"]}\n')
         
@@ -199,7 +204,7 @@ def run_document_agent(inputs=None, auto=False, categories=None):
 
         ### Rules:
         - Always call `search_tool` first to gather context, unless the answer is already fully in the current document.
-        - The query passed to search_tool must be compatible with the search engine query format.
+        - The query sent to search_tool must be a concise, summarized version of the user input, formatted as a search-friendly string or set of keywords, suitable for search engines like Google, Bing, or Qwant.
         - **After retrieving documents**, always generate both `tweet`, `blog_post` and `reddit_post` and call the `update` tool with the full updated content
         - Always use **tools** (`update`, `save`) for any JSON output. Do NOT directly print JSON in your final reply.
         - `update` must include both the full updated "tweet", "blog_post" and "reddit_post".
@@ -237,9 +242,6 @@ def run_document_agent(inputs=None, auto=False, categories=None):
         return {
             "messages": list(state['messages']) + [user_message, response], 
             "input_index": state["input_index"]+1, 
-            "tweet": state.get("tweet", ""),
-            "blog_post": state.get("blog_post", ""),
-            "reddit_post": state.get("reddit_post", "")
         }
 
     def should_continue(state: AgentState):
@@ -301,7 +303,6 @@ def run_document_agent(inputs=None, auto=False, categories=None):
                 "tweet": updated_tweet,
                 "blog_post": updated_blog_post,
                 "reddit_post": updated_reddit_post
-                
             }            
             
         return stateful_tool_node
@@ -342,11 +343,15 @@ def run_document_agent(inputs=None, auto=False, categories=None):
         
     state = {"messages": [], 'tweet':"", 'blog_post':"", 'reddit_post':"", "input_index":0}
 
-        
+    final_state = None
+    
     for step in app.stream(state, config=config, stream_mode="values"):
         if "messages" in step:
             print_messages(step["messages"])
+        final_state = step
+        
     print("\n***FINISHED DRAFTER***")
+    return final_state
 
 if __name__ == "__main__":
     run_document_agent()

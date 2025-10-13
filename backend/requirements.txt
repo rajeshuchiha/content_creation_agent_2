@@ -9,3 +9,9 @@ langchain
 langgraph
 langchain-core
 langchain-google-genai
+google-auth
+google-auth-oauthlib
+google-api-python-client
+tweepy
+passlib[bcrypt]
+pyjwt

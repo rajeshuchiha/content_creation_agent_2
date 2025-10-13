@@ -1,39 +1,114 @@
 import os
 from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.exceptions import RefreshError
+from ...models.platform_credentials import PlatformCredential
+from sqlalchemy.orm import Session
 
-def postBlog(text):
+CLIENT_SECRETS_FILE = "client_secrets.json"
+SCOPES = ["https://www.googleapis.com/auth/blogger"]
+REDIRECT_URI = "http://localhost:8000/auth/google/callback"
 
-    creds = None
+# def get_authorization_url():
 
-    if os.path.exists("tokens.json"):
-        creds = Credentials.from_authorized_user_file('tokens.json', scopes=["https://www.googleapis.com/auth/blogger"])
+# def postBlog(text):
+
+#     creds = None
+
+#     if os.path.exists("tokens.json"):
+#         creds = Credentials.from_authorized_user_file('tokens.json', scopes=["https://www.googleapis.com/auth/blogger"])
         
-    if not creds or not creds.valid:
+#     if not creds or not creds.valid:
         
-        try:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                raise RefreshError("Invalid or missing refresh token")
+#         try:
+#             if creds and creds.expired and creds.refresh_token:
+#                 creds.refresh(Request())
+#             else:
+#                 raise RefreshError("Invalid or missing refresh token")
         
-        except RefreshError:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'client_secrets.json',
-                scopes=["https://www.googleapis.com/auth/blogger"]
-            )
+#         except RefreshError:
+#             flow = InstalledAppFlow.from_client_secrets_file(
+#                 'client_secret.json',
+#                 scopes=["https://www.googleapis.com/auth/blogger"]
+#             )
 
-            creds = flow.run_local_server(port=0)
+#             creds = flow.run_local_server(port=0)
 
-            with open("tokens.json", "w") as file:
-                file.write(creds.to_json())
+#             with open("tokens.json", "w") as file:
+#                 file.write(creds.to_json())
 
+#     try:
+#         service = build("blogger", "v3", credentials=creds)
+
+#         blog_id = "3115491518418580833"
+
+#         post_body = {
+#             "kind": "blogger#post",
+#             "blog":{
+#                 "id": blog_id
+#             },
+#             "title": "Test Post",
+#             "content": text,
+#             "labels": ['test', 'first']
+#         }
+#         new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
+
+#         print(f"The new post is at url: {new_post['url']}")
+        
+#     except HttpError as error:
+#         print(f"An error Occurred: {error}")
+
+def get_authorization_url():
+    flow = Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI
+    )
+    return flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        # prompt="consent"
+    )
+    
+        
+def save_credentials(request: Request, user_id: int, db: Session):
+    
+    flow = Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI
+    )
+
+    flow.fetch_token(authorization_response=str(request.url))
+    credentials = flow.credentials
+    
+    db.add(
+        PlatformCredential(
+            {
+                "user_id": user_id,
+                "platform": "google",
+                "access_token": credentials.token,
+                "refresh_token": credentials.refresh_token,
+                "expires_at": credentials.expiry
+            }
+        )
+    )
+    db.commit()
+    
+    return credentials
+        
+def postBlog(user_id: int, db: Session):
+    
+    user_creds = db.query(PlatformCredential).filter(PlatformCredential.user_id == user_id).first()
+    creds = Credentials(token=user_creds["token"], refresh_token=user_creds["refresh_token"])
+    
     try:
         service = build("blogger", "v3", credentials=creds)
+        
+        blogs = service.blogs().listByUser(userId="self").execute()
 
         blog_id = "3115491518418580833"
 
@@ -52,6 +127,8 @@ def postBlog(text):
         
     except HttpError as error:
         print(f"An error Occurred: {error}")
+    
+        
         
 
 if __name__ == "__main__":

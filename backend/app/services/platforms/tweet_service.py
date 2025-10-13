@@ -1,9 +1,9 @@
 import tweepy
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 
-load_dotenv()
+# load_dotenv()
 
 api_key = os.environ.get("twitter_API_key")
 api_key_secret = os.environ.get("twitter_API_key_secret")

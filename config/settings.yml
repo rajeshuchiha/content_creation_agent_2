@@ -76,7 +76,7 @@ search:
   # remove format to deny access, use lower case.
   # formats: [html, csv, json, rss]
   formats:
-    - html
+    # - html
     - json
 
 server:
@@ -1749,35 +1749,35 @@ engines:
     shortcut: qki
     disabled: true
 
-  - name: qwant
-    qwant_categ: web
-    engine: qwant
-    shortcut: qw
-    categories: [general, web]
-    disabled: true
-    additional_tests:
-      rosebud: *test_rosebud
+  # - name: qwant
+  #   qwant_categ: web
+  #   engine: qwant
+  #   shortcut: qw
+  #   categories: [general, web]
+  #   disabled: true
+  #   additional_tests:
+  #     rosebud: *test_rosebud
 
-  - name: qwant news
-    qwant_categ: news
-    engine: qwant
-    shortcut: qwn
-    categories: news
-    network: qwant
+  # - name: qwant news
+  #   qwant_categ: news
+  #   engine: qwant
+  #   shortcut: qwn
+  #   categories: news
+  #   network: qwant
 
-  - name: qwant images
-    qwant_categ: images
-    engine: qwant
-    shortcut: qwi
-    categories: [images, web]
-    network: qwant
+  # - name: qwant images
+  #   qwant_categ: images
+  #   engine: qwant
+  #   shortcut: qwi
+  #   categories: [images, web]
+  #   network: qwant
 
-  - name: qwant videos
-    qwant_categ: videos
-    engine: qwant
-    shortcut: qwv
-    categories: [videos, web]
-    network: qwant
+  # - name: qwant videos
+  #   qwant_categ: videos
+  #   engine: qwant
+  #   shortcut: qwv
+  #   categories: [videos, web]
+  #   network: qwant
 
   # - name: library
   #   engine: recoll
@@ -1811,11 +1811,11 @@ engines:
     page_size: 25
     disabled: true
 
-  - name: reuters
-    engine: reuters
-    shortcut: reu
-    # https://docs.searxng.org/dev/engines/online/reuters.html
-    # sort_order = "relevance"
+  # - name: reuters
+  #   engine: reuters
+  #   shortcut: reu
+  #   # https://docs.searxng.org/dev/engines/online/reuters.html
+  #   # sort_order = "relevance"
 
   - name: right dao
     engine: xpath
@@ -1987,25 +1987,25 @@ engines:
     api_key: ""
     inactive: true
 
-  - name: startpage
-    engine: startpage
-    shortcut: sp
-    startpage_categ: web
-    categories: [general, web]
-    additional_tests:
-      rosebud: *test_rosebud
+  # - name: startpage
+  #   engine: startpage
+  #   shortcut: sp
+  #   startpage_categ: web
+  #   categories: [general, web]
+  #   additional_tests:
+  #     rosebud: *test_rosebud
 
-  - name: startpage news
-    engine: startpage
-    startpage_categ: news
-    categories: [news, web]
-    shortcut: spn
+  # - name: startpage news
+  #   engine: startpage
+  #   startpage_categ: news
+  #   categories: [news, web]
+  #   shortcut: spn
 
-  - name: startpage images
-    engine: startpage
-    startpage_categ: images
-    categories: [images, web]
-    shortcut: spi
+  # - name: startpage images
+  #   engine: startpage
+  #   startpage_categ: images
+  #   categories: [images, web]
+  #   shortcut: spi
 
   - name: steam
     engine: steam
