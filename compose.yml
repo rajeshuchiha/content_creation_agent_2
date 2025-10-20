@@ -7,15 +7,57 @@ services:
       - ./config/:/etc/searxng/
       - ./data/:/var/cache/searxng/
 
-  app:
+  backend:
     build: 
       context: ./backend
+      dockerfile: Dockerfile
     env_file:
-      - .backend/env
+      - ./backend/.env
     ports:
       - 8000:8000
     depends_on:
-      - search_engine
+      db:
+        condition: service_healthy
+      search_engine:
+        condition: service_started  
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 3000:80
+    depends_on:
+      - backend
+
+  db:
+    image: pgvector/pgvector:pg18     # postgres:18.0
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=mydb
+      - POSTGRES_USER=user 
+      - POSTGRES_PASSWORD=pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d mydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"  # access pgAdmin at http://localhost:8080
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  chroma_data:
 
 
 

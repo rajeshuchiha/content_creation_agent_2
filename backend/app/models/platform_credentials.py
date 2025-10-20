@@ -1,4 +1,4 @@
-from ..database import Base
+from app.database import Base
 from sqlalchemy import  Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -10,6 +10,6 @@ class PlatformCredential(Base):
     platform = Column(String)
     access_token = Column(String)
     refresh_token = Column(String, nullable=True)
-    expires_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="platforms")

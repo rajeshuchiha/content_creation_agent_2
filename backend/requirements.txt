@@ -13,5 +13,12 @@ google-auth
 google-auth-oauthlib
 google-api-python-client
 tweepy
-passlib[bcrypt]
+# passlib[bcrypt]
+pwdlib[argon2]
 pyjwt
+psycopg2-binary     #for alembic (later)
+SQLAlchemy[asyncio]
+asyncpg
+alembic
+pgvector
+google-genai

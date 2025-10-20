@@ -1,13 +1,27 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Annotated, Union
 from fastapi.responses import RedirectResponse, HTMLResponse
 from langchain.chat_models import init_chat_model
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
+from sqlalchemy import select
 from fastapi.concurrency import run_in_threadpool
-from scraper import search, search_and_scrape
-from generation.text_generator import run_document_agent
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.scraper import search, search_and_scrape
+from app.services.text_generator import run_document_agent
+from app.routers import auth
+from app.database import init_db, get_db
+from google import genai
+from google.genai import types
+from app.models.content import Content
+from app.schemas.user import UserResponse
+from app.schemas.content import Item, ItemsList
+from app.services.platforms.combined_service import post
+from app.services import auth_service
+
 
 class Page(BaseModel):
     url: str
@@ -18,21 +32,25 @@ class Page(BaseModel):
     
 class PagesList(BaseModel):
     pages: List[Page]
-    
-class Item(BaseModel):
-    question: str
-    tweet: Annotated[str, "≤15 words, must include hashtags, mentions, emojis"]
-    blog_post: Annotated[str, "≥250 words, detailed and informative"]
-    reddit_post: Annotated[str, "JSON string with 'title' and 'body'; 'body' supports Markdown"]
-    timestamp: datetime
-    
-class ItemsList(BaseModel):
-    Items: List[Item]
      
 
 llm = init_chat_model('gemini-2.5-flash', model_provider="google_genai")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+
+app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],    # include frontend(check if changed)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+app.include_router(auth.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
@@ -66,7 +84,12 @@ async def get_scrape_data(query: str, categories: Optional[str]=None):
     return {"pages": results}
 
 @app.get("/api/results/{query}", response_model=ItemsList)
-async def content_gen(query: str, categories: Optional[str]=None):
+async def content_gen(
+    query: str, 
+    current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], 
+    db: Annotated[AsyncSession, Depends(get_db)], 
+    categories: Optional[str]=None      #query parameters(category) must be last
+):    
     
     data = await search(query, categories)
     
@@ -91,26 +114,72 @@ async def content_gen(query: str, categories: Optional[str]=None):
     
     new_items = []
     tone = "curiosity"  #   Can pick a tone on random for each question (write a list to pick random)
+    client = genai.Client()
+    
     for question in questions:
-        inputs = [
-            f"{question} with a tone of {tone}", 
-            "Save it"
-        ]
         
-        output = await run_in_threadpool(run_document_agent, inputs=inputs, auto=True, categories=categories) #   Second
+         #   Embedding
+
+        result = client.models.embed_content(
+            model="gemini-embedding-001",
+            contents=question,
+            config=types.EmbedContentConfig(output_dimensionality=768)
+        )
+
+        [embedding_obj] = result.embeddings
         
-        await asyncio.sleep(8)
+        #   Find if question already exists
+        existing = await db.scalars(
+            select(Content).filter(
+                (Content.embedding.cosine_distance(embedding_obj.values) < 0.3)
+                & (Content.timestamp > datetime.now() - timedelta(days=2))
+            )
+        )
+        result = existing.first()   # existing.all() for all
         
-        #   output is giving empty tweet, blog, reddit. Check WHY??
+        if not result:
         
-        new_items.append({
-            "question": question,
-            "tweet": output.get("tweet", ""),
-            "blog_post": output.get("blog_post", ""),
-            "reddit_post": output.get("reddit_post", ""),
-            "timestamp": datetime.now()
-        })
+            inputs = [
+                f"{question} with a tone of {tone}", 
+                "Save it"
+            ]
+            
+            output = await run_in_threadpool(run_document_agent, inputs=inputs, auto=True, categories=categories) #   Second
+            
+            await asyncio.sleep(8)
+            
+            #   Add to Content db
+            
+            result = Content(
+                title = question,
+                tweet = output.get("tweet", ""),
+                blog_post = output.get("blog_post", ""),
+                reddit_post = output.get("reddit_post", ""),
+                title_embed  = embedding_obj.values,
+                timestamp = datetime.now()
+            )
+        
+            db.add(result)
+            await db.commit()
+            await db.refresh(result)    # Be Cautious! (Don't need to add again)
+        
+        item = Item.model_validate(result)    
+        post(current_user, db, result)    #   Important
+        
+        # new_items.append({
+        #     "question": question,
+        #     "tweet": output.get("tweet", ""),
+        #     "blog_post": output.get("blog_post", ""),
+        #     "reddit_post": output.get("reddit_post", ""),
+        #     "timestamp": datetime.now()
+        # })
+        new_items.append(item)
+        
         # the following input must be given to this: 
         # {1. topic -> retrieve 2."write it in a intruiging way and mention every name, date or time exactly " -> update(optional), 3."save it"}
     
     return {"Items": new_items}
+
+@app.get('/health')
+async def health_check():
+    return {'status': 'ok'}

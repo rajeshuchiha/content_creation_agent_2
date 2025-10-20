@@ -10,11 +10,11 @@ from langgraph.prebuilt import ToolNode
 import time
 import json
 
-from .platforms.blogger_service import postBlog
-from .platforms.tweet_service import postTweet
-from .platforms.reddit_service import postReddit
 import asyncio
-from scraper import search, search_and_scrape
+from app.services.platforms.blogger_service import postBlog
+from app.services.platforms.tweet_service import postTweet
+from app.services.platforms.reddit_service import postReddit
+from app.scraper import search, search_and_scrape
 
 # from dotenv import load_dotenv
 # load_dotenv()

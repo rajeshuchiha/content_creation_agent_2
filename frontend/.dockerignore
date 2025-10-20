@@ -1,0 +1,22 @@
+# Node modules and logs
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+
+# Local build outputs
+dist
+build
+
+# Environment files
+.env
+.env.local
+
+# OS/editor junk
+.DS_Store
+*.swp
+*.swo
+.idea
+.vscode
+.git
+.gitignore

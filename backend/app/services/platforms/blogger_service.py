@@ -1,12 +1,13 @@
-import os
+from typing import Annotated
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.exceptions import RefreshError
-from ...models.platform_credentials import PlatformCredential
-from sqlalchemy.orm import Session
+from app.models.platform_credentials import PlatformCredential
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 CLIENT_SECRETS_FILE = "client_secrets.json"
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
@@ -74,7 +75,7 @@ def get_authorization_url():
     )
     
         
-def save_credentials(request: Request, user_id: int, db: Session):
+async def save_credentials(request: Request, user_id: int, db: AsyncSession):
     
     flow = Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
@@ -87,23 +88,21 @@ def save_credentials(request: Request, user_id: int, db: Session):
     
     db.add(
         PlatformCredential(
-            {
-                "user_id": user_id,
-                "platform": "google",
-                "access_token": credentials.token,
-                "refresh_token": credentials.refresh_token,
-                "expires_at": credentials.expiry
-            }
+            user_id=user_id,
+            platform="google",
+            access_token=credentials.token,
+            refresh_token=credentials.refresh_token,
+            expires_at=credentials.expiry
         )
     )
-    db.commit()
+    await db.commit()
     
     return credentials
         
-def postBlog(user_id: int, db: Session):
+async def postBlog(user_creds: PlatformCredential, text):   # user_id comes with user.py
     
-    user_creds = db.query(PlatformCredential).filter(PlatformCredential.user_id == user_id).first()
-    creds = Credentials(token=user_creds["token"], refresh_token=user_creds["refresh_token"])
+   
+    creds = Credentials(token=user_creds["access_token"], refresh_token=user_creds["refresh_token"])
     
     try:
         service = build("blogger", "v3", credentials=creds)

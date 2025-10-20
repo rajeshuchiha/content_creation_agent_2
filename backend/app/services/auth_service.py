@@ -1,11 +1,15 @@
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
+# from passlib.context import CryptContext
+from pwdlib import PasswordHash
 import jwt
 from datetime import timedelta, datetime
-from ..models.user import User
-from ..schemas.user import UserModel, UserInDB, Token
+from app.models.user import User
+from app.schemas.user import UserInDB
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
 
 #   openssl rand -hex 32  (command)
 SECRET_KEY = "4ed5fafed291cca71e7b0b859d10b60285e1e03ee404198ebf389294242bd532"  # use env var in prod
@@ -13,37 +17,37 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+password_hash = PasswordHash.recommended()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token")     #   Check the prefix in auth.py
     
 
 # helper functions
 def get_hashed_password(password: str):
-    return pwd_context.hash(password)
+    return password_hash.hash(password)
 
 def verify_password(password: str, hashed: str):
-    return pwd_context.verify(password, hashed)
+    return password_hash.verify(password, hashed)
 
 
-def get_user(db, username: str):
+async def get_user(db, username: str):
     
-    user = db.query(User).filter(User.username == username).first()
+    result = await db.execute(select(User).where(User.username == username))     #   For async db.
+    user = result.scalars().first()
     
     if user:
         # return UserInDB(**user)     # **user, giving values of dict as arguments (if user is dict)    
         return UserInDB.model_validate(user)
     
-def authenticate_user(db, username, password):
-    
-    user = get_user(db, username)
-    
+async def authenticate_user(db, username, password):
+    user = await get_user(db, username)
     # if not user:
     #     user = db.query(User).filter(User.email == username).first()    #      Verify by email too
     if not user:
         return False
 
-    if not verify_password(password, user["hashed_password"]):
+    if not verify_password(password, user.hashed_password):
         return False
     
     return user
@@ -61,22 +65,22 @@ def create_access_token(data: dict, expires_delta: timedelta|None = None):
     return encoded_jwt
 
 # token -> user
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Annotated[AsyncSession, Depends(get_db)]):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail='Could not validate credentials',
         headers={"WWW-Authenticate": "Bearer"}
     )
     try:
-        payload = jwt.decode(token, key=SECRET_KEY ,algorithms=ALGORITHM)
+        payload = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
             raise credentials_exception
-        token_data = Token(username=username)   # check why this is used
+        # token_data = Token(access_token=username)   # check why this is used
     except:
         raise credentials_exception
     
-    user = get_user(db, token_data.username)
+    user = await get_user(db, username)
     if user is None:
         raise credentials_exception
     
@@ -85,29 +89,30 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db):
 async def get_current_active_user(
     current_user: Annotated[User, Depends(get_current_user)],   # UserInDB can be passed to User (inheritance, hash_pass will be ignored)
 ):
-    if current_user.disabled:
+    if not current_user.is_active:
         raise HTTPException(
             status_code=400, detail='Inactive User')     
     return current_user
 
-def create_user(db, user):
+async def create_user(db, user):
     
-    existing = db.query(User).filter(User.username == user.username).first()
+    result = await db.execute(select(User).where(User.username == user.username))     #   For async db.
+    existing_user = result.scalars().first()
 
-    if existing:
+    if existing_user:
         raise HTTPException(status_code=400, detail="username already exists!")
     
-    db_user = {
-        "username": user["username"],
-        "email": user["username"],
-        "password": get_hashed_password(user["password"])
-    }
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=get_hashed_password(user.password)
+    )
     
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)     #   Adjusts db_user to UserResponse
+    await db.commit()
+    await db.refresh(db_user)
     
     return db_user
-    
+  
 
         
