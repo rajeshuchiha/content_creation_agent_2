@@ -8,19 +8,22 @@ import asyncio
 from sqlalchemy import select
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.scraper import search, search_and_scrape
-from app.services.text_generator import run_document_agent
-from app.routers import auth
-from app.database import init_db, get_db
 from google import genai
 from google.genai import types
+import os
+from app.routers import auth
+from app.routers.platforms import google, reddit, twitter
+from app.database import init_db, get_db
 from app.models.content import Content
 from app.schemas.user import UserResponse
 from app.schemas.content import Item, ItemsList
 from app.services.platforms.combined_service import post
 from app.services import auth_service
+from app.scraper import search, search_and_scrape
+from app.services.text_generator import run_document_agent
 
 
 class Page(BaseModel):
@@ -38,7 +41,10 @@ llm = init_chat_model('gemini-2.5-flash', model_provider="google_genai")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("Starting up...")
     await init_db()
+    yield
+    print("Shutting down...")
 
 app = FastAPI(lifespan=lifespan)
 
@@ -50,7 +56,18 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("session_secret_key"), # Need to be Static
+    https_only=False,      # cookie only sent over HTTPS (Set to True in production)
+    max_age=3600,         # seconds, optional
+    same_site="lax"
+)
+
 app.include_router(auth.router)
+app.include_router(google.router)
+app.include_router(reddit.router)
+app.include_router(twitter.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def home():

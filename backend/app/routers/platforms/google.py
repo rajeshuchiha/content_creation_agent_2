@@ -3,14 +3,14 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 from app.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.services.platforms import google_service
+from app.services.platforms import google_service
 from app.services import auth_service
 from app.schemas.user import UserResponse
 
 FRONTEND_URL= "http://localhost:5173"
 
 router = APIRouter(
-    prefix="/auth/google", 
+    prefix="/api/auth/google", 
     tags=["google OAuth"],
     dependencies=[Depends(auth_service.get_current_active_user)]
 )

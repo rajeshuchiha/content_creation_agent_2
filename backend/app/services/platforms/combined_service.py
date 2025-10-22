@@ -1,10 +1,9 @@
 from app.services.platforms import reddit_service, twitter_service
 from app.schemas.content import Item
 from sqlalchemy import select
-from app.models.platform_credentials import PlatformCredential
 import json
-
-from backend.app.services.platforms import google_service, twitter_service
+from app.models.platform_credentials import PlatformCredential
+from app.services.platforms import google_service, twitter_service
 
 async def post(current_user, db, item: Item):
     user_id = current_user.id

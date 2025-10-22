@@ -10,7 +10,7 @@ from app.schemas.user import UserResponse
 FRONTEND_URL= "http://localhost:5173"
 
 router = APIRouter(
-    prefix="/auth/reddit", 
+    prefix="/api/auth/reddit", 
     tags=["Reddit OAuth"],
     dependencies=[Depends(auth_service.get_current_active_user)]
 )
@@ -38,4 +38,4 @@ async def oauth2callback(request: Request, current_user: Annotated[UserResponse,
 @router.get("/me")
 async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
     
-    return await reddit_service.checkStatus(current_user, db)
+    return await reddit_service.check_status(current_user, db)

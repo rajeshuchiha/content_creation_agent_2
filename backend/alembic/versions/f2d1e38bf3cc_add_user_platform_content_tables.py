@@ -1,8 +1,8 @@
-"""Add user and platform_creds tables
+"""Add user, platform, content tables
 
-Revision ID: 683e5c8e50e3
+Revision ID: f2d1e38bf3cc
 Revises: 
-Create Date: 2025-10-17 15:21:28.714161
+Create Date: 2025-10-22 12:07:00.882088
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '683e5c8e50e3'
+revision: str = 'f2d1e38bf3cc'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,6 +26,8 @@ def upgrade() -> None:
     sa.Column('username', sa.String(), nullable=True),
     sa.Column('email', sa.String(), nullable=True),
     sa.Column('hashed_password', sa.String(), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
@@ -37,7 +39,7 @@ def upgrade() -> None:
     sa.Column('platform', sa.String(), nullable=True),
     sa.Column('access_token', sa.String(), nullable=True),
     sa.Column('refresh_token', sa.String(), nullable=True),
-    sa.Column('expires_at', sa.DateTime(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

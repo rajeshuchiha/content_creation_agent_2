@@ -21,7 +21,7 @@ asnyc_session_maker = sessionmaker(
 async def init_db():
     """Call this once at application startup"""
     async with engine.begin() as conn:
-        conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
+        await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
 
 async def get_db():   
     async with asnyc_session_maker() as session:

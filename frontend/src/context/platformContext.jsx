@@ -35,11 +35,20 @@ export const PlatformProvider = ({ children }) => {
 
 
     const togglePlatforms = async(platform) => {
-        setPlatforms((prev) => ({ ...prev, [platform]: !prev[platform] }));
-        if(Platforms[platform]){
-            const res = await api.get(`/auth/${platform}/authorize`)
-            const data = await res.json()
-            console.log(data)
+        
+        const newValue = !Platforms[platform];
+        setPlatforms((prev) => ({ ...prev, [platform]: newValue }));
+        
+        try {
+            const res = newValue
+                ? await api.get(`/auth/${platform}/authorize`)
+                : await api.delete(`/auth/${platform}/user`);
+            const data = await res.json();
+            console.log(data);
+        } catch (err) {
+            console.error("API error", err);
+            // optionally revert state if API fails
+            setPlatforms((prev) => ({ ...prev, [platform]: !newValue }));
         }
     };
 
