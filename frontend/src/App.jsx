@@ -9,23 +9,25 @@ import Dashboard from './pages/DashboardPage'
 import { AuthProvider } from './context/authContext'
 import NavBar from './components/navBar'
 import Register from './components/auth/Register'
-
+import { PlatformProvider } from './context/platformContext'
 
 function App() {
 
   return (
     <AuthProvider>
-      <div>
-        <NavBar />
-        <main className='main-content'>
-          <Routes>
-            <Route path='/' element={<Home />} />
-            <Route path='/dashboard' element={<Dashboard />} /> 
-            <Route path='/login' element={<Login />} />
-            <Route path='/register' element={<Register />} />
-          </Routes>
-        </main>
-      </div>
+      <PlatformProvider>
+        <div>
+          <NavBar />
+          <main className='main-content'>
+            <Routes>
+              <Route path='/' element={<Home />} />
+              <Route path='/dashboard' element={<Dashboard />} />
+              <Route path='/login' element={<Login />} />
+              <Route path='/register' element={<Register />} />
+            </Routes>
+          </main>
+        </div>
+      </PlatformProvider>
     </AuthProvider>
   )
 }

@@ -11,8 +11,8 @@ import time
 import json
 
 import asyncio
-from app.services.platforms.blogger_service import postBlog
-from app.services.platforms.tweet_service import postTweet
+from backend.app.services.platforms.google_service import postBlog
+from backend.app.services.platforms.twitter_service import postTweet
 from app.services.platforms.reddit_service import postReddit
 from app.scraper import search, search_and_scrape
 

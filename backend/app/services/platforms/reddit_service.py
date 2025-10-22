@@ -1,17 +1,18 @@
 import os
-import requests
-from requests.auth import HTTPBasicAuth
+import httpx
 from urllib.parse import urlencode
 import secrets
 from app.models.platform_credentials import PlatformCredential
+from app.schemas.user import UserResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import select
+from sqlalchemy import select, delete
+from datetime import datetime
 
 REDIRECT_URI = "http://localhost:8000/auth/reddit/callback"
 
 client_id = os.environ.get("reddit_client_ID")
 client_secret = os.environ.get("reddit_client_secret")
-
+auth = httpx.BasicAuth(client_id, client_secret)
 
 def get_authorization_url():
     
@@ -30,10 +31,8 @@ def get_authorization_url():
     return authorization_url, state
 
     
-def save_credentials(code, current_user, db):
+async def save_credentials(code, current_user: UserResponse, db: AsyncSession):
     
-    
-    auth = HTTPBasicAuth(client_id, client_secret)
     headers = {"User-Agent": "web_app/0.1 by Ok_Turnip9330"}
         
     data = {
@@ -41,40 +40,66 @@ def save_credentials(code, current_user, db):
         "code": code,
         "redirect_uri": REDIRECT_URI
     }
-
-    response = requests.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
-
-    result = response.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
+        response.raise_for_status()
+        credentials = response.json()
+        
     db.add(
         PlatformCredential(
-            user_id=current_user.user_id,
+            user_id=current_user.id,
             platform="google",
-            access_token=result["access_token"],
-            refresh_token=result["refresh_token"],
-            expires_at=result["expires_in"]
+            access_token=credentials["access_token"],
+            refresh_token=credentials["refresh_token"],
+            expires_at=credentials["expires_in"]
         )
     )
-    
+    await db.commit()
+    return credentials
 
 # response  = requests.get(url="https://oauth.reddit.com/api/v1/me", headers=headers)
 
 # print(response.json())
 
-# Compulsory keys for data. !!! Change "sr" to desired subreddit.
-async def postReddit(db: AsyncSession, current_user, title = "New Post", text="Place_holder", sr="test"):
-    
-    credentials = await db.scalars(
-        select(PlatformCredential).filter(PlatformCredential.platform == "reddit" & PlatformCredential.user_id==current_user.id)
-    ).first()
+# this is the check function (Use it in combined service)
+async def check_access_token(db: AsyncSession):
+    pass
 
-    if credentials.expires_at < datetime.now()
+# Compulsory keys for data. !!! Change "sr" to desired subreddit.
+async def postReddit(credentials: PlatformCredential, title = "New Post", text="Place_holder", sr="test"):
     
-    headers = {"User-Agent": "web_app/0.1 by Ok_Turnip9330"}
+    # credentials = await db.scalars(
+    #     select(PlatformCredential).filter(PlatformCredential.platform == "reddit" & PlatformCredential.user_id==current_user.id)
+    # ).first()
+    bearer_token = credentials.access_token
+
+    #   **Add this in another function (A check function to check validity)
+    # if credentials.get('expires_at') and credentials.expires_at < datetime.now():
         
-    data = {
-        "grant_type": "refresh_token",
-        "refresh_token": credentials.refresh_token
-    }
+    
+    #     headers = {"User-Agent": "web_app/0.1 by Ok_Turnip9330"}
+            
+    #     data = {
+    #         "grant_type": "refresh_token",
+    #         "refresh_token": credentials.refresh_token
+    #     }
+    #     async with httpx.AsyncClient() as client:
+    #         response = await client.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
+    #         response.raise_for_status()
+    #         credentials = response.json()
+            
+    #     db.add(
+    #         PlatformCredential(
+    #             user_id=credentials.user_id,
+    #             platform="google",
+    #             access_token=credentials["access_token"],
+    #             refresh_token=credentials["refresh_token"],
+    #             expires_at=credentials["expires_in"]
+    #         )
+    #     )
+    #     await db.commit()
+    #     bearer_token = credentials["access_token"]        
+
     
     headers = {"Authorization": f"bearer {bearer_token}", "User-Agent": "ChangeMeClient/0.1 by Ok_Turnip9330"}
     
@@ -92,14 +117,39 @@ async def postReddit(db: AsyncSession, current_user, title = "New Post", text="P
             "title": title,
             "text": text
         }    
-
-    response = requests.post(
-        "https://oauth.reddit.com/api/submit", 
-        headers=headers,
-        data=data
-    )
+    async with httpx.AsyncClient() as client:
+        response = client.post(
+            "https://oauth.reddit.com/api/submit", 
+            headers=headers,
+            data=data
+        )
+        try:
+            response.raise_for_status()
+            
+        except httpx.HTTPStatusError as e:
+            print(f"Request failed: {e}")
+            
+async def check_status(current_user: UserResponse, db: AsyncSession):
+    platform = "reddit"
+    res = await db.scalars(select(PlatformCredential).where(
+        (PlatformCredential.user_id == current_user.id) & 
+        (PlatformCredential.platform == platform)
+    ))
+    results = res.all()    
     
-    response.raise_for_status()
+    return {"integrated": results is not None}
+
+async def delete_user(current_user: UserResponse, db: AsyncSession):
+    platform = "reddit"
+    result = await db.execute(delete(PlatformCredential).where(
+        (PlatformCredential.user_id == current_user.id) & 
+        (PlatformCredential.platform == platform)
+    ))
+    await db.commit()
+    
+    # if result.rowcount == 0:
+    #     raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted"}
 
 if __name__ == "__main__":  
 # response.status_code()

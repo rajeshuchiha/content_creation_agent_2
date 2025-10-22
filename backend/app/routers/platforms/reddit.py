@@ -7,6 +7,8 @@ from app.services.platforms import reddit_service
 from app.services import auth_service
 from app.schemas.user import UserResponse
 
+FRONTEND_URL= "http://localhost:5173"
+
 router = APIRouter(
     prefix="/auth/reddit", 
     tags=["Reddit OAuth"],
@@ -21,7 +23,7 @@ def authorize(request: Request):
 
 
 @router.get("/callback")
-def oauth2callback(request: Request, current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
+async def oauth2callback(request: Request, current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
     saved_state = request.session.get("state")
     received_state = request.query_params.get("state")
 
@@ -29,7 +31,11 @@ def oauth2callback(request: Request, current_user: Annotated[UserResponse, Depen
         return {"error": "Invalid state parameter"}
     
     code = request.query_params.get('code')
-    credentials = reddit_service.save_credentials(code, current_user, db)
+    credentials = await reddit_service.save_credentials(code, current_user, db)
 
-    # You could store credentials.token in DB here
-    return {"message": "Authorization successful!", "access_token": credentials.token}
+    return RedirectResponse(url=f"{FRONTEND_URL}/dashboard")
+
+@router.get("/me")
+async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
+    
+    return await reddit_service.checkStatus(current_user, db)

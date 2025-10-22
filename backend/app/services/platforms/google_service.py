@@ -7,6 +7,8 @@ from googleapiclient.errors import HttpError
 from google.auth.exceptions import RefreshError
 from app.models.platform_credentials import PlatformCredential
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.user import UserResponse
+from sqlalchemy import select, delete
 
 
 CLIENT_SECRETS_FILE = "client_secrets.json"
@@ -75,7 +77,7 @@ def get_authorization_url():
     )
     
         
-async def save_credentials(request: Request, user_id: int, db: AsyncSession):
+async def save_credentials(request: Request, current_user: UserResponse, db: AsyncSession):
     
     flow = Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
@@ -88,7 +90,7 @@ async def save_credentials(request: Request, user_id: int, db: AsyncSession):
     
     db.add(
         PlatformCredential(
-            user_id=user_id,
+            user_id=current_user.id,
             platform="google",
             access_token=credentials.token,
             refresh_token=credentials.refresh_token,
@@ -99,8 +101,7 @@ async def save_credentials(request: Request, user_id: int, db: AsyncSession):
     
     return credentials
         
-async def postBlog(user_creds: PlatformCredential, text):   # user_id comes with user.py
-    
+async def postBlog(user_creds: PlatformCredential, text):   
    
     creds = Credentials(token=user_creds["access_token"], refresh_token=user_creds["refresh_token"])
     
@@ -109,26 +110,40 @@ async def postBlog(user_creds: PlatformCredential, text):   # user_id comes with
         
         blogs = service.blogs().listByUser(userId="self").execute()
 
-        blog_id = "3115491518418580833"
+        for blog in blogs.get("items", []):     # later give choice to choose the blogs
+            blog_id = blog["id"]
+            post_body = {
+                "kind": "blogger#post",
+                "title": "Test Post",
+                "content": text,
+                "labels": ['test', 'first']
+            }
+            new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
 
-        post_body = {
-            "kind": "blogger#post",
-            "blog":{
-                "id": blog_id
-            },
-            "title": "Test Post",
-            "content": text,
-            "labels": ['test', 'first']
-        }
-        new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
-
-        print(f"The new post is at url: {new_post['url']}")
+            print(f"The new post is at url: {new_post['url']}")
         
     except HttpError as error:
         print(f"An error Occurred: {error}")
     
         
-        
+async def check_status(current_user: UserResponse, db: AsyncSession):
+    platform = "google"
+    res = await db.scalars(select(PlatformCredential).where(
+        (PlatformCredential.user_id == current_user.id) & 
+        (PlatformCredential.platform == platform)
+    ))
+    results = res.all()    
+    
+    return {"integrated": results is not None}
+
+async def delete_user(current_user: UserResponse, db: AsyncSession):
+    platform = "google"
+    result = await db.execute(delete(PlatformCredential).where(PlatformCredential.user_id == current_user.id & PlatformCredential.platform == platform))
+    await db.commit()
+    
+    # if result.rowcount == 0:
+    #     raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "User deleted"}
 
 if __name__ == "__main__":
     text = """
