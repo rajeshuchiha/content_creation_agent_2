@@ -11,10 +11,10 @@ import time
 import json
 
 import asyncio
-from app.services.platforms.google_service import postBlog
-from app.services.platforms.twitter_service import postTweet
-from app.services.platforms.reddit_service import postReddit
+from app.services.platforms.combined_service import post
 from app.scraper import search, search_and_scrape
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.schemas.user import UserResponse
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -26,7 +26,7 @@ class AgentState(TypedDict):
     reddit_post: Annotated[str, "JSON string with 'title' and 'body'; 'body' supports Markdown"]
     input_index: int
        
-def run_document_agent(inputs=None, auto=False, categories=None):  
+def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None, auto=False, categories=None):  
     
     # time.sleep(2)   #   Pause at start 
     
@@ -62,28 +62,31 @@ def run_document_agent(inputs=None, auto=False, categories=None):
             filename = f"{filename}.txt"
             
         #post code --> write later (check the returns)
-        try:
-            postTweet(tweet)
-            print("Tweet posted successfully!")
-        except Exception as e:
-            print(f"Tweet posting failed: {str(e)}")
+        # try:
+        #     postTweet(tweet)
+        #     print("Tweet posted successfully!")
+        # except Exception as e:
+        #     print(f"Tweet posting failed: {str(e)}")
             
-        try:
-            postBlog(blog_post)
-            print("Blog posted successfully!")
-        except Exception as e:
-            print(f"Blog posting failed: {str(e)}")
+        # try:
+        #     postBlog(blog_post)
+        #     print("Blog posted successfully!")
+        # except Exception as e:
+        #     print(f"Blog posting failed: {str(e)}")
             
-        try:
-            reddit_post_dict = json.loads(reddit_post)
-            title = reddit_post_dict['title']
-            body = reddit_post_dict['body']
+        # try:
+        #     reddit_post_dict = json.loads(reddit_post)
+        #     title = reddit_post_dict['title']
+        #     body = reddit_post_dict['body']
   
-            postReddit(title=title, text=body)
-            print("Reddit posted Successfully!")
+        #     postReddit(title=title, text=body)
+        #     print("Reddit posted Successfully!")
                 
-        except Exception as e:
-            print(f"Reddit posting failed: {str(e)}")
+        # except Exception as e:
+        #     print(f"Reddit posting failed: {str(e)}")
+        
+        
+        # post(current_user, db)
             
         return f"Document has been saved successfully to {filename}"
     

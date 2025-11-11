@@ -13,3 +13,4 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     platforms = relationship("PlatformCredential", back_populates="user")
+    contents = relationship("Content", back_populates="user")

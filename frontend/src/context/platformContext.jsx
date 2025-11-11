@@ -16,14 +16,14 @@ export const PlatformProvider = ({ children }) => {
         const fetchStatuses = async () => {
             try {
                 const [twitter_status, reddit_status, google_status] = await Promise.all([
-                    api.get("/auth/twitter/me"),
-                    api.get("/auth/reddit/me"),
-                    api.get("/auth/google/me"),
+                    api.get("/auth/twitter/status"),
+                    api.get("/auth/reddit/status"),
+                    api.get("/auth/google/status"),
                 ]);
                 setPlatforms({
-                    "twitter": twitter_status,
-                    "reddit": reddit_status,
-                    "google": google_status,
+                    "twitter": twitter_status.data.integrated,
+                    "reddit": reddit_status.data.integrated,
+                    "google": google_status.data.integrated,
                 });
             } catch (err) {
                 console.error("Failed to fetch platform statuses", err);
@@ -38,13 +38,17 @@ export const PlatformProvider = ({ children }) => {
         
         const newValue = !Platforms[platform];
         setPlatforms((prev) => ({ ...prev, [platform]: newValue }));
-        
+
         try {
-            const res = newValue
-                ? await api.get(`/auth/${platform}/authorize`)
-                : await api.delete(`/auth/${platform}/user`);
-            const data = await res.json();
-            console.log(data);
+            if (newValue){
+                const {data} = await api.get(`/auth/${platform}/authorize`)
+                window.location.href = data.auth_url 
+            }
+            else{
+                const {data} = await api.delete(`/auth/${platform}/user`);
+                console.log(data)
+            }
+
         } catch (err) {
             console.error("API error", err);
             // optionally revert state if API fails

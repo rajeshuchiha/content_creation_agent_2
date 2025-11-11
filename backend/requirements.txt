@@ -1,10 +1,10 @@
 fastapi
 uvicorn
+python-multipart
+itsdangerous
 pydantic
 httpx
 beautifulsoup4
-playwright
-python-multipart
 langchain
 langgraph
 langchain-core

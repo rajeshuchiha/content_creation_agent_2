@@ -4,10 +4,10 @@ from datetime import datetime
 
 class Item(BaseModel):
     id: int
-    question: str
+    title: str
     tweet: Annotated[str, "≤15 words, must include hashtags, mentions, emojis"]
     blog_post: Annotated[str, "≥250 words, detailed and informative"]
-    reddit_post: Annotated[str, "JSON string with 'title' and 'body'; 'body' supports Markdown"]
+    reddit_post: Annotated[dict, "JSON with 'title' and 'body'; 'body' supports Markdown"]
     timestamp: datetime
     
     class Config:

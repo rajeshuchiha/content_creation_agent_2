@@ -2,15 +2,19 @@ import asyncio
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+import pgvector.sqlalchemy
 
 from app.database import Base
 from app.models.user import User
 from app.models.platform_credentials import PlatformCredential
+from app.models.content import Content
+
+#later change it to form app import models (check init of models)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -79,7 +83,10 @@ async def run_async_migrations() -> None:
         poolclass=pool.NullPool,
     )
 
-    async with connectable.connect() as connection:
+    async with connectable.begin() as connection:
+        
+        await connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()

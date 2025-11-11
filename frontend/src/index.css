@@ -1,68 +1,72 @@
+/* Load Tailwind core */
+@import "tailwindcss";
+
+/* ✅ Load official animation plugin */
+@plugin "tailwindcss-animate";
+
+/* Global light/dark setup */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+@theme dark {
+  --background: lab(2.75381% 0 0);
+  --foreground: lab(98.26% 0 0);
+  --card: lab(7.78201% -.0000149012 0);
+  --card-foreground: lab(98.26% 0 0);
+  --popover: lab(15.204% 0 -.00000596046);
+  --popover-foreground: lab(98.26% 0 0);
+  --color-primary: lab(90.952% 0 -.0000119209);
+  --color-primary-foreground: lab(7.78201% -.0000149012 0);
+  --secondary: lab(15.204% 0 -.00000596046);
+  --secondary-foreground: lab(98.26% 0 0);
+  --muted: lab(15.204% 0 -.00000596046);
+  --muted-foreground: lab(66.128% -.0000298023 .0000119209);
+  --accent: lab(27.036% 0 0);
+  --accent-foreground: lab(98.26% 0 0);
+  --destructive: lab(63.7053% 60.745 31.3109);
+  --border: lab(100% 0 0 / .1);
+  --input: lab(100% 0 0 / .15);
+  --ring: lab(48.496% 0 0);
+  --sidebar: lab(7.78201% -.0000149012 0);
+  --sidebar-foreground: lab(98.26% 0 0);
+  --sidebar-primary: lab(36.9089% 35.0961 -85.6872);
+  --sidebar-primary-foreground: lab(98.26% 0 0);
+  --sidebar-accent: lab(15.204% 0 -.00000596046);
+  --sidebar-accent-foreground: lab(98.26% 0 0);
+  --sidebar-border: lab(100% 0 0 / .1);
+  --sidebar-ring: lab(34.924% 0 0);
+  --surface: lab(7.22637% -.0000149012 0);
+  --surface-foreground: lab(66.128% -.0000298023 .0000119209);
+  --code-highlight: lab(15.32% 0 0);
+  --code-number: lab(67.52% -.0000298023 0);
+  --selection: lab(90.952% 0 -.0000119209);
+  --selection-foreground: lab(7.78201% -.0000149012 0);
 }
 
-@media (prefers-color-scheme: light) {
+@theme {
+  --color-surface: var(--surface);
+}
+
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
   }
-  a:hover {
-    color: #747bff;
+  /* input {
+    background-color: var(--input-background);
+    color: var(--input-foreground);
+    border: 1px solid var(--input-border);
   }
-  button {
-    background-color: #f9f9f9;
-  }
+
+  input::placeholder {
+    color: var(--input-placeholder);
+  } */
 }
+
+
+/* Optional global styles */
+/* body {
+  @apply bg-gray-50 text-gray-900 dark:var[] dark:text-gray-50;
+} */

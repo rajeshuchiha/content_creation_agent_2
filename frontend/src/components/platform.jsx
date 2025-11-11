@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { usePlatformContext } from "../context/platformContext";
 
+import { Button } from "./ui/button";
+
 function Platform({ name }) {
 
     const platform = name.toLowerCase();
@@ -10,15 +12,15 @@ function Platform({ name }) {
     const enabled = Platforms[platform];
 
     return (
-        <div>
+        <div className="flex justify-end">
             <span>{name}: </span>
             {enabled && <span>Enabled</span>}
-            <button
+            <Button
                 onClick={() => {togglePlatforms(platform)}}
                 style={{ marginLeft: "8px" }}
             >
                 {enabled ? "Disable" : "Enable"}
-            </button>
+            </Button>
 
         </div>
     );

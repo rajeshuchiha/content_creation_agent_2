@@ -9,11 +9,12 @@ from app.models.platform_credentials import PlatformCredential
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserResponse
 from sqlalchemy import select, delete
+import asyncio
 
 
 CLIENT_SECRETS_FILE = "client_secrets.json"
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
-REDIRECT_URI = "http://localhost:8000/auth/google/callback"
+REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
 
 # def get_authorization_url():
 
@@ -73,11 +74,13 @@ def get_authorization_url():
     return flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
-        # prompt="consent"
+        prompt="select_account"     # prompt="consent"
     )
     
         
-async def save_credentials(request: Request, current_user: UserResponse, db: AsyncSession):
+async def save_credentials(request: Request, db: AsyncSession):
+    
+    user_id = request.session.get("user_id")
     
     flow = Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
@@ -90,7 +93,7 @@ async def save_credentials(request: Request, current_user: UserResponse, db: Asy
     
     db.add(
         PlatformCredential(
-            user_id=current_user.id,
+            user_id=user_id,
             platform="google",
             access_token=credentials.token,
             refresh_token=credentials.refresh_token,
@@ -105,10 +108,11 @@ async def postBlog(user_creds: PlatformCredential, text):
    
     creds = Credentials(token=user_creds["access_token"], refresh_token=user_creds["refresh_token"])
     
-    try:
+    def blogger_sync():
         service = build("blogger", "v3", credentials=creds)
         
         blogs = service.blogs().listByUser(userId="self").execute()
+        results = []        # for printing
 
         for blog in blogs.get("items", []):     # later give choice to choose the blogs
             blog_id = blog["id"]
@@ -119,8 +123,15 @@ async def postBlog(user_creds: PlatformCredential, text):
                 "labels": ['test', 'first']
             }
             new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
-
-            print(f"The new post is at url: {new_post['url']}")
+            
+            results.append(new_post['url'])
+            
+        return results
+    
+    try:
+        urls = await asyncio.run_coroutine_threadsafe(blogger_sync)
+        for url in urls:
+            print(f"The new post is at url: {url}")
         
     except HttpError as error:
         print(f"An error Occurred: {error}")
@@ -134,11 +145,14 @@ async def check_status(current_user: UserResponse, db: AsyncSession):
     ))
     results = res.all()    
     
-    return {"integrated": results is not None}
+    return {"integrated": len(results) > 0}
 
 async def delete_user(current_user: UserResponse, db: AsyncSession):
     platform = "google"
-    result = await db.execute(delete(PlatformCredential).where(PlatformCredential.user_id == current_user.id & PlatformCredential.platform == platform))
+    result = await db.execute(delete(PlatformCredential).where(
+        (PlatformCredential.user_id == current_user.id) & 
+        (PlatformCredential.platform == platform)
+    ))
     await db.commit()
     
     # if result.rowcount == 0:

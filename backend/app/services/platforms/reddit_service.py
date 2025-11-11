@@ -6,9 +6,9 @@ from app.models.platform_credentials import PlatformCredential
 from app.schemas.user import UserResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from datetime import datetime
+from datetime import datetime, timedelta
 
-REDIRECT_URI = "http://localhost:8000/auth/reddit/callback"
+REDIRECT_URI = "http://localhost:8000/api/auth/reddit/callback"
 
 client_id = os.environ.get("reddit_client_ID")
 client_secret = os.environ.get("reddit_client_secret")
@@ -31,7 +31,10 @@ def get_authorization_url():
     return authorization_url, state
 
     
-async def save_credentials(code, current_user: UserResponse, db: AsyncSession):
+async def save_credentials(request, db: AsyncSession):
+    
+    user_id = request.session.get("user_id")
+    code = request.query_params.get("code")
     
     headers = {"User-Agent": "web_app/0.1 by Ok_Turnip9330"}
         
@@ -45,13 +48,19 @@ async def save_credentials(code, current_user: UserResponse, db: AsyncSession):
         response.raise_for_status()
         credentials = response.json()
         
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
+        response.raise_for_status()
+        credentials = response.json()
+        
+    expires_at = datetime.now() + timedelta(seconds=credentials["expires_in"])
     db.add(
         PlatformCredential(
-            user_id=current_user.id,
-            platform="google",
+            user_id=user_id,
+            platform="reddit",
             access_token=credentials["access_token"],
             refresh_token=credentials["refresh_token"],
-            expires_at=credentials["expires_in"]
+            expires_at=expires_at
         )
     )
     await db.commit()
@@ -118,7 +127,7 @@ async def postReddit(credentials: PlatformCredential, title = "New Post", text="
             "text": text
         }    
     async with httpx.AsyncClient() as client:
-        response = client.post(
+        response = await client.post(
             "https://oauth.reddit.com/api/submit", 
             headers=headers,
             data=data
@@ -137,7 +146,7 @@ async def check_status(current_user: UserResponse, db: AsyncSession):
     ))
     results = res.all()    
     
-    return {"integrated": results is not None}
+    return {"integrated": len(results) > 0}
 
 async def delete_user(current_user: UserResponse, db: AsyncSession):
     platform = "reddit"

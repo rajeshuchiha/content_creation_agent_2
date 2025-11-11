@@ -18,6 +18,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       search_engine:
         condition: service_started  
 
@@ -45,6 +47,18 @@ services:
       retries: 5
       start_period: 30s
 
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: alembic upgrade head
+    restart: on-failure
+
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -57,9 +71,5 @@ services:
 
 volumes:
   postgres_data:
-  chroma_data:
-
-
-
-
+  # chroma_data:
 

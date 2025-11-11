@@ -7,35 +7,36 @@ from app.services.platforms import google_service
 from app.services import auth_service
 from app.schemas.user import UserResponse
 
-FRONTEND_URL= "http://localhost:5173"
+FRONTEND_URL= "http://localhost:3000"
 
 router = APIRouter(
     prefix="/api/auth/google", 
     tags=["google OAuth"],
-    dependencies=[Depends(auth_service.get_current_active_user)]
+    # dependencies=[Depends(auth_service.get_current_active_user)]
 )
 
 @router.get("/authorize")
-def authorize(request: Request):
+async def authorize(request: Request, current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)]):
     authorization_url, state = google_service.get_authorization_url()
     request.session["state"] = state  # store for CSRF protection
-    return RedirectResponse(authorization_url)
+    request.session["user_id"] = current_user.id
+    
+    return {"auth_url": authorization_url}
 
 
 @router.get("/callback")
-def oauth2callback(request: Request, current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
+async def oauth2callback(request: Request, db: AsyncSession = Depends(get_db)):
     saved_state = request.session.get("state")
     received_state = request.query_params.get("state")
 
     if saved_state != received_state:
         return {"error": "Invalid state parameter"}
+    
+    credentials = await google_service.save_credentials(request, db)
 
-    credentials = google_service.save_credentials(request, current_user, db)
+    return RedirectResponse(url=f"{FRONTEND_URL}/dashboard", status_code=302)
 
-    # You could store credentials.token in DB here
-    return RedirectResponse(url=f"{FRONTEND_URL}/dashboard")
-
-@router.get("/me")
+@router.get("/status")
 async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
     
     return await google_service.check_status(current_user, db)

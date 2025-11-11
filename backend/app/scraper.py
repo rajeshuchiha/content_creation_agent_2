@@ -75,10 +75,10 @@ class Scraper():
             await asyncio.sleep(2)
             
             text = await page.inner_text('body')
-            text = await self.process(text)
+            text = self.process(text)
             
             title = await page.title()
-            title = await self.process(title)
+            title = self.process(title)
             
             await page.close()
             
