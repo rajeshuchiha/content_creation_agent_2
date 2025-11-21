@@ -11,7 +11,7 @@ Base = declarative_base()
 
 
 # Base.metadata.create_all(engine)
-asnyc_session_maker = sessionmaker(
+async_session_maker = sessionmaker(
     bind=engine, 
     class_=AsyncSession, 
     expire_on_commit=False,
@@ -24,5 +24,5 @@ async def init_db():
         await conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
 
 async def get_db():   
-    async with asnyc_session_maker() as session:
+    async with async_session_maker() as session:
         yield session

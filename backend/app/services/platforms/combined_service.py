@@ -1,9 +1,11 @@
 from app.services.platforms import reddit_service, twitter_service
 from app.schemas.content import Item
 from sqlalchemy import select
-import json
 from app.models.platform_credentials import PlatformCredential
 from app.services.platforms import google_service, twitter_service
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 async def post(current_user, db, item: Item):
     user_id = current_user.id
@@ -27,4 +29,4 @@ async def post(current_user, db, item: Item):
                 await google_service.postBlog(cred, item.blog_post)
     
         except Exception as e:
-            print(f"Error: {e}")
+            logger.exception(f"Error: {e}")

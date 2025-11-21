@@ -1,0 +1,38 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments (never include these!)
+venv/
+.venv/
+
+# Node modules (HUGE — always ignore)
+node_modules/
+
+# Local environment files
+.env
+*.env
+
+# Local development configs
+*.log
+*.sqlite
+*.db
+
+# Git + metadata
+.git
+.gitignore
+
+# Docker files that shouldn't be copied
+Dockerfile
+Dockerfile.*
+
+# Editor / OS trash
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Large caches
+.cache/
+tmp/

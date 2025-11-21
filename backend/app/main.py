@@ -17,7 +17,9 @@ from app.routers.platforms import google, reddit, twitter
 from app.database import init_db, get_db
 from app.services.platforms.combined_service import post
 from app.scraper import search, search_and_scrape
+from app.logger import setup_logger
 
+logger = setup_logger(__name__)
 
 class Page(BaseModel):
     url: str
@@ -34,10 +36,10 @@ class PagesList(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting up...")
+    logger.info("Starting up...")
     await init_db()
     yield
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 app = FastAPI(lifespan=lifespan)
 

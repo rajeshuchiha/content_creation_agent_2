@@ -69,6 +69,22 @@ services:
     depends_on:
       - db
 
+  celery_worker:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    command: celery -A app.worker worker --loglevel=info    # celery -A app.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+    env_file:
+      - ./backend/.env
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
 volumes:
   postgres_data:
   # chroma_data:

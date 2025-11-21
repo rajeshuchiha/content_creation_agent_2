@@ -7,6 +7,9 @@ from app.schemas.user import UserResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from datetime import datetime, timedelta
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 REDIRECT_URI = "http://localhost:8000/api/auth/reddit/callback"
 
@@ -43,10 +46,6 @@ async def save_credentials(request, db: AsyncSession):
         "code": code,
         "redirect_uri": REDIRECT_URI
     }
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
-        response.raise_for_status()
-        credentials = response.json()
         
     async with httpx.AsyncClient() as client:
         response = await client.post(url="https://www.reddit.com/api/v1/access_token", data=data, auth=auth, headers=headers)
@@ -113,11 +112,11 @@ async def postReddit(credentials: PlatformCredential, title = "New Post", text="
     headers = {"Authorization": f"bearer {bearer_token}", "User-Agent": "ChangeMeClient/0.1 by Ok_Turnip9330"}
     
     if not title:
-        print("Reddit post has NULL title.")
+        logger.error("Reddit post has NULL title.")
         return  
 
     if not text:
-        print("Reddit post has NULL content.")
+        logger.error("Reddit post has NULL content.")
         return
         
     data = {
@@ -136,7 +135,7 @@ async def postReddit(credentials: PlatformCredential, title = "New Post", text="
             response.raise_for_status()
             
         except httpx.HTTPStatusError as e:
-            print(f"Request failed: {e}")
+            logger.error(f"Request failed: {e}")
             
 async def check_status(current_user: UserResponse, db: AsyncSession):
     platform = "reddit"

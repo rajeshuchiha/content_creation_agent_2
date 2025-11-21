@@ -1,5 +1,6 @@
 import { useContext, createContext, useState, useEffect } from "react";
 import api from '../services/api';
+import { useAuthContext } from "./authContext";
 
 const PlatformContext = createContext();
 
@@ -11,8 +12,11 @@ export const PlatformProvider = ({ children }) => {
         "reddit": false,
         "google": false
     });
+    const { User } = useAuthContext()
 
     useEffect(() => {
+        if (!User) return;
+
         const fetchStatuses = async () => {
             try {
                 const [twitter_status, reddit_status, google_status] = await Promise.all([
@@ -31,21 +35,21 @@ export const PlatformProvider = ({ children }) => {
         };
 
         fetchStatuses();
-    }, []);
+    }, [User]);
 
 
-    const togglePlatforms = async(platform) => {
-        
+    const togglePlatforms = async (platform) => {
+
         const newValue = !Platforms[platform];
         setPlatforms((prev) => ({ ...prev, [platform]: newValue }));
 
         try {
-            if (newValue){
-                const {data} = await api.get(`/auth/${platform}/authorize`)
-                window.location.href = data.auth_url 
+            if (newValue) {
+                const { data } = await api.get(`/auth/${platform}/authorize`)
+                window.location.href = data.auth_url
             }
-            else{
-                const {data} = await api.delete(`/auth/${platform}/user`);
+            else {
+                const { data } = await api.delete(`/auth/${platform}/user`);
                 console.log(data)
             }
 

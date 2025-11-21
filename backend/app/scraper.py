@@ -3,6 +3,9 @@ import bs4
 from playwright.async_api import async_playwright
 import asyncio
 import re
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 class Scraper():
 
@@ -63,7 +66,7 @@ class Scraper():
                 }
                 
         except Exception as e:
-            print(f"BS4 failed: {e}")
+            logger.error(f"BS4 failed: {e}")
             return None
 
     async def scrape_with_playwright(self, url):
@@ -92,7 +95,7 @@ class Scraper():
             }
             
         except Exception as e:
-            print(f"Playwright failed: {e}")
+            logger.error(f"Playwright failed: {e}")
             return {
                 'url': url,
                 'title': '',       
@@ -116,16 +119,16 @@ class Scraper():
         result = await self.scrape_with_bs4(url)
         
         if await self.is_content_sufficient(result=result):
-            print(f"BS4 worked! Content length: {len(result['text'])}")
+            logger.info(f"BS4 worked! Content length: {len(result['text'])}")
             return result
         
         
         result = await self.scrape_with_playwright(url)
         
         if result.get('success'):
-            print(f"Playwright worked! Content length: {len(result.get('text', ''))}")
+            logger.info(f"Playwright worked! Content length: {len(result.get('text', ''))}")
         else:
-            print(f"Playwright failed for: {url}")
+            logger.error(f"Playwright failed for: {url}")
             
         return result
         
@@ -176,7 +179,7 @@ async def search(query, categories):
             return res.json()
     
     except Exception as e: 
-        print(f"Search failed: {e}")
+        logger.error(f"Search failed: {e}")
         return {"results": []}
     
 async def search_and_scrape(query, categories, data=None, maxURL=10):

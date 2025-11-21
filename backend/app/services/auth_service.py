@@ -10,6 +10,9 @@ from app.schemas.user import UserInDB
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 #   openssl rand -hex 32  (command)
 SECRET_KEY = "4ed5fafed291cca71e7b0b859d10b60285e1e03ee404198ebf389294242bd532"  # use env var in prod
@@ -75,13 +78,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: An
         payload = jwt.decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         if not username:
+            logger.error("Credential Mismatch")
             raise credentials_exception
         # token_data = Token(access_token=username)   # check why this is used
     except:
+        logger.error("Token Decoding Error")
         raise credentials_exception
     
     user = await get_user(db, username)
     if user is None:
+        logger.error("Database returned null user")
         raise credentials_exception
     
     return user

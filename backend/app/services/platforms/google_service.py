@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserResponse
 from sqlalchemy import select, delete
 import asyncio
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 CLIENT_SECRETS_FILE = "client_secrets.json"
@@ -131,10 +134,10 @@ async def postBlog(user_creds: PlatformCredential, text):
     try:
         urls = await asyncio.run_coroutine_threadsafe(blogger_sync)
         for url in urls:
-            print(f"The new post is at url: {url}")
+            logger.info(f"The new post is at url: {url}")
         
     except HttpError as error:
-        print(f"An error Occurred: {error}")
+        logger.error(f"An error Occurred: {error}")
     
         
 async def check_status(current_user: UserResponse, db: AsyncSession):

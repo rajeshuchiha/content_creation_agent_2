@@ -14,14 +14,14 @@ function Content() {
     const [isNews, setNews] = useState(false)
     const [Posts, setPosts] = useState([])
     const [Loading, setLoading] = useState(false)
+    const [TaskId, setTaskId] = useState(null)
+    const [Status, setStatus] = useState("")
 
 
     const fetchResults = async (query, is_news) => {
+        const results = await api.post(`/results/${encodeURIComponent(query)}${(is_news ? '?categories=news' : '')}`);
 
-        const results = await api.get(`/results/${encodeURIComponent(query)}${(is_news ? '?categories=news' : '')}`);
-
-        const data = results.data.Items;
-        return data;
+        return results.data
     }
 
     const handleSubmit = async (e) => {
@@ -29,7 +29,14 @@ function Content() {
         setLoading(true);
         try{
             const data = await fetchResults(Query, isNews);
-            setPosts(data);
+
+            setStatus(data.status)
+            if (data.status !== "failed"){
+                setTaskId(data.task_id)
+            }
+            else{
+                console.log(data.error)
+            }
         }
         catch(err){
             console.error(err);
@@ -82,11 +89,15 @@ function Content() {
             </form>
             <div className="flex justify-center w-full">
                 {Loading ? <Loader /> :
-                    <div className="current-post">
-                        {Posts && Posts.map((post) => {
-                            return <PostCard key={post.id} post={post} />
-                        })}
+                    <div>
+                        <h2>Current Task Id: {TaskId}</h2>
+                        <h3>Status: {Status}</h3>
                     </div>
+                    // <div className="current-post">
+                    //     {Posts && Posts.map((post) => {
+                    //         return <PostCard key={post.id} post={post} />
+                    //     })}
+                    // </div>
                 }
             </div>
         </div>

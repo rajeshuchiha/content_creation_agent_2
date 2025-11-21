@@ -15,6 +15,9 @@ from app.services.platforms.combined_service import post
 from app.scraper import search, search_and_scrape
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserResponse
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -64,15 +67,15 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
         #post code --> write later (check the returns)
         # try:
         #     postTweet(tweet)
-        #     print("Tweet posted successfully!")
+        #     logger.info("Tweet posted successfully!")
         # except Exception as e:
-        #     print(f"Tweet posting failed: {str(e)}")
+        #     logger.info(f"Tweet posting failed: {str(e)}")
             
         # try:
         #     postBlog(blog_post)
-        #     print("Blog posted successfully!")
+        #     logger.info("Blog posted successfully!")
         # except Exception as e:
-        #     print(f"Blog posting failed: {str(e)}")
+        #     logger.info(f"Blog posting failed: {str(e)}")
             
         # try:
         #     reddit_post_dict = json.loads(reddit_post)
@@ -80,10 +83,10 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
         #     body = reddit_post_dict['body']
   
         #     postReddit(title=title, text=body)
-        #     print("Reddit posted Successfully!")
+        #     logger.info("Reddit posted Successfully!")
                 
         # except Exception as e:
-        #     print(f"Reddit posting failed: {str(e)}")
+        #     logger.info(f"Reddit posting failed: {str(e)}")
         
         
         # post(current_user, db)
@@ -99,7 +102,7 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
         #     document_content = f"Tweet: \n{tweet}\nBlog Post: \n{blog_post}\n Reddit Post: \n{reddit_post}\n"
         #     with open(FILE_PATH, "w", encoding="utf-8") as file:
         #         file.write(document_content)
-        #     print(f"\n Document saved to {filename}")
+        #     logger.info(f"\n Document saved to {filename}")
         #     return f"Document has been saved successfully to {filename}"
         # except Exception as e:
         #     return f"File not saved due to error: {str(e)}"
@@ -169,7 +172,7 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
             
         else:
             user_input = input("\n How would you like to update the document?")
-            print(f"\n USER: {user_input}")
+            logger.info(f"\n USER: {user_input}")
             user_message = HumanMessage(content=user_input)
             
         return user_message
@@ -234,13 +237,13 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
         
         response = llm.invoke(prompt)
         
-        print("\nCurrent tweet:", state['tweet'])
-        print("\nCurrent blog_post:", state['blog_post'])
-        print("\nCurrent reddit_post:", state['reddit_post'])
+        logger.info(f"\nCurrent tweet: {state['tweet']}")
+        logger.info(f"\nCurrent blog_post: {state['blog_post']}")
+        logger.info("\nCurrent reddit_post: {state['reddit_post']}")
         
-        print(f"\n AI: {response.content}")
+        logger.info(f"\n AI: {response.content}")
         if hasattr(response, "tool_calls") and response.tool_calls:
-            print(f"\n Using TOOLS: {[tc for tc in response.tool_calls]}")
+            logger.info(f"\n Using TOOLS: {[tc for tc in response.tool_calls]}")
 
         return {
             "messages": list(state['messages']) + [user_message, response], 
@@ -258,28 +261,28 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
             if(isinstance(message, ToolMessage)):
             
                 if ("saved successfully" in message.content.lower() or ("document has been saved" in message.content.lower())):
-                    print("Found save confirmation - Ending...")  
+                    logger.info("Found save confirmation - Ending...")  
                     return "end"
             
                 if ("File not saved" in message.content.lower()):
-                    print("Save Error - Ending....")
+                    logger.error("Save Error - Ending....")
                     return "end"
                 #   End if no retrieved data
             
                 if ("information not found" in message.content.lower() and "retrieved content" in message.content.lower()):
-                    print("No data found - Ending.....")  
+                    logger.error("No data found - Ending.....")  
                     return "end"
         
         return "continue"
 
-    def print_messages(messages):
-        """Funtion I made to print messages in a readable format"""
+    def log_messages(messages):
+        """Funtion I made to log messages in a readable format"""
         if not messages: 
             return
         
         for message in messages[-3:]:
             if isinstance(message, ToolMessage):
-                print(f"\n TOOL RESULT: {message.content}")
+                logger.info(f"\n TOOL RESULT: {message.content}")
 
     def create_stateful_tool_node(tools):
         
@@ -330,7 +333,7 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
     app = graph.compile()
 
 
-    print("\n *****DRAFTER*****")
+    logger.info("\n *****DRAFTER*****")
     
     # Toggle Automatic
     
@@ -350,10 +353,10 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
     
     for step in app.stream(state, config=config, stream_mode="values"):
         if "messages" in step:
-            print_messages(step["messages"])
+            log_messages(step["messages"])
         final_state = step
         
-    print("\n***FINISHED DRAFTER***")
+    logger.info("\n***FINISHED DRAFTER***")
     return final_state
 
 if __name__ == "__main__":

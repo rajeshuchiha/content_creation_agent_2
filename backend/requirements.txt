@@ -21,3 +21,6 @@ asyncpg
 alembic
 pgvector
 google-genai
+tweepy
+redis
+celery[redis]
