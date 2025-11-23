@@ -45,7 +45,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],    # include frontend(check if changed)
+    allow_origins=["http://localhost:3000", "https://content-creation-agent-2.vercel.app/"],    # include frontend(check if changed)
     allow_credentials=True, 
     allow_methods=["*"],
     allow_headers=["*"]

@@ -4,8 +4,8 @@ services:
     ports:
       - 8888:8080
     volumes:
-      - ./config/:/etc/searxng/
-      - ./data/:/var/cache/searxng/
+      - ./searxng/config/:/etc/searxng/
+      - ./searxng/data/:/var/cache/searxng/
 
   backend:
     build: 
