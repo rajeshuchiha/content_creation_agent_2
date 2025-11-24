@@ -14,10 +14,6 @@ import ProtectedRoute from './auth/ProtectedRoute'
 
 function App() {
 
-  useEffect(() => {
-    console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
-  }, []);
-
   return (
     <AuthProvider>
       <PlatformProvider>
