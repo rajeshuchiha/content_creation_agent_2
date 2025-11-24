@@ -18,6 +18,7 @@ from app.database import init_db, get_db
 from app.services.platforms.combined_service import post
 from app.scraper import search, search_and_scrape
 from app.logger import setup_logger
+from app.config import allowed_origins
 
 logger = setup_logger(__name__)
 
@@ -30,8 +31,6 @@ class Page(BaseModel):
     
 class PagesList(BaseModel):
     pages: List[Page]
-     
-
 
 
 @asynccontextmanager
@@ -45,11 +44,12 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://content-creation-agent-2.vercel.app/"],    # include frontend(check if changed)
+    allow_origins=allowed_origins,
     allow_credentials=True, 
     allow_methods=["*"],
     allow_headers=["*"]
 )
+# allow_origins=["http://localhost:3000", "https://content-creation-agent-2.vercel.app/"],    # include frontend(check if changed)
 
 app.add_middleware(
     SessionMiddleware,

@@ -1,11 +1,14 @@
 import httpx
 import bs4
+import os
 from playwright.async_api import async_playwright
 import asyncio
 import re
 from app.logger import setup_logger
 
 logger = setup_logger(__name__)
+
+SEARXNG_URL=os.environ.get("SEARXNG_URL")
 
 class Scraper():
 
@@ -169,7 +172,7 @@ async def search(query, categories):
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             # res = await client.get(f"http://search_engine:8080/search?q={query}&categories={categories}&format=json")
-            res = await client.get("http://search_engine:8080/search", 
+            res = await client.get(f"{SEARXNG_URL}/search", 
                                     params={
                                         "q": query,
                                         "categories": categories,
