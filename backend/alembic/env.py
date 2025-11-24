@@ -21,7 +21,29 @@ from app.models.content import Content
 config = context.config
 
 # Set database URL from settings
-config.set_main_option("sqlalchemy.url", os.environ.get("DATABASE_URL"))
+def get_database_url():
+    
+    database_url = os.environ.get("DATABASE_URL")
+    
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace(
+            "postgres://",
+            "postgresql+asyncpg://",
+            1
+        )
+    
+    elif database_url.startswith("postgresql://"):
+        database_url = database_url.replace(
+            "postgresql://",
+            "postgresql+asyncpg://",
+            1
+        )
+        
+    return database_url
+
+DB_URL = get_database_url()
+
+config.set_main_option("sqlalchemy.url", DB_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
