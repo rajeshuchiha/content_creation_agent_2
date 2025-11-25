@@ -11,12 +11,16 @@ import { useAuthContext } from "@/context/authContext";
 
 export default function Navbar() {
 
-  const { User, logout } = useAuthContext();
+  const { User, logout, Loading } = useAuthContext();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate("/")
+  }
+
+  if(Loading){
+    return <div></div>;
   }
 
   return (
