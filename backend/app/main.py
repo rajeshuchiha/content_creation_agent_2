@@ -59,7 +59,6 @@ app.add_middleware(
     max_age=3600,         # seconds, optional
     # same_site="lax"
     same_site="none",
-    secure=True
 )
 
 app.include_router(auth.router)
