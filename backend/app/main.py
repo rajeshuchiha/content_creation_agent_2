@@ -55,7 +55,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=os.environ.get("session_secret_key"), # Need to be Static
     session_cookie="session",
-    https_only=False,      # cookie only sent over HTTPS (Set to True in production)
+    https_only=True,      # cookie only sent over HTTPS (Set to True in production)
     max_age=3600,         # seconds, optional
     same_site="lax"
 )
