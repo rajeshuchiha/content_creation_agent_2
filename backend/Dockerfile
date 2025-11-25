@@ -87,7 +87,16 @@ RUN playwright install chromium
 COPY --chown=appuser:appuser . .
 
 #   For Railway (Production)
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}    
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips "*"
+
+#   --proxy-headers --forwarded-allow-ips "*" Why? check below.
+
+# --proxy-headers: Tells FastAPI to look for the headers Railway sends (X-Forwarded-Proto).
+
+# --forwarded-allow-ips "*": Trusts the Railway internal load balancer IPs (which change frequently).
+
+# Result: request.url inside your app will correctly show https://... instead of http://..., satisfying the Google OAuth requirement.
+
 
 # # For Dev
 
