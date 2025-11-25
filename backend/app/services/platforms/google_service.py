@@ -20,6 +20,9 @@ CLIENT_SECRETS_FILE = "client_secrets.json"
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
 REDIRECT_URI = f"{BACKEND_URI}/api/auth/google/callback"
 
+CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID")
+CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET")
+
 # def get_authorization_url():
 
 # def postBlog(text):
@@ -78,8 +81,8 @@ def get_authorization_url():
     flow = Flow.from_client_config(
         {
             "web": {
-                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
                 "redirect_uris": [REDIRECT_URI],
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token"
@@ -99,10 +102,18 @@ async def save_credentials(request: Request, db: AsyncSession):
     
     user_id = request.session.get("user_id")
     
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "redirect_uris": [REDIRECT_URI],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token"
+            }
+        },
         scopes=SCOPES,
-        redirect_uri=REDIRECT_URI
+        redirect_uri=REDIRECT_URI,
     )
 
     flow.fetch_token(authorization_response=str(request.url))
