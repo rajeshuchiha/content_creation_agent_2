@@ -57,7 +57,9 @@ app.add_middleware(
     session_cookie="session",
     https_only=True,      # cookie only sent over HTTPS (Set to True in production)
     max_age=3600,         # seconds, optional
-    same_site="lax"
+    # same_site="lax"
+    same_site="none",
+    secure=True
 )
 
 app.include_router(auth.router)

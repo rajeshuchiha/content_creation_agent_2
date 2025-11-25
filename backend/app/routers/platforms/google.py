@@ -29,9 +29,19 @@ async def authorize(request: Request, current_user: Annotated[UserResponse, Depe
 async def oauth2callback(request: Request, db: AsyncSession = Depends(get_db)):
     saved_state = request.session.get("state")
     received_state = request.query_params.get("state")
+    
+    debug_info = {
+        "saved_state": saved_state,
+        "received_state": received_state,
+        "session_data": dict(request.session),
+        "cookies": dict(request.cookies),
+        "match": saved_state == received_state
+    }
+    
+    print(f"DEBUG: {debug_info}")
 
     if saved_state != received_state:
-        return {"error": "Invalid state parameter"}
+        return {"error": "Invalid state parameter", "debug": debug_info}
     
     credentials = await google_service.save_credentials(request, db)
 
