@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.platforms import reddit_service
 from app.services import auth_service
 from app.schemas.user import UserResponse
+from app.config import FRONTEND_URI
 
-FRONTEND_URL= "http://localhost:3000"
+REDIRECT_URI=f"{FRONTEND_URI}/dashboard"
 
 router = APIRouter(
     prefix="/api/auth/reddit", 
@@ -33,7 +34,7 @@ async def oauth2callback(request: Request, db: AsyncSession = Depends(get_db)):
     
     credentials = await reddit_service.save_credentials(request, db)
 
-    return RedirectResponse(url=f"{FRONTEND_URL}/dashboard", status_code=302)
+    return RedirectResponse(url=REDIRECT_URI, status_code=302)
 
 @router.get("/status")
 async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):

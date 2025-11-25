@@ -24,3 +24,6 @@ DB_URL = get_database_url()
 
 allowed_origins_env = os.environ.get("ALLOWED_ORIGINS")
 allowed_origins = [origin.strip() for origin in allowed_origins_env.split(',') if origin.strip()]
+
+BACKEND_URI = os.environ.get("BACKEND_URI", "http://localhost:8000")
+FRONTEND_URI = os.environ.get("FRONTEND_URI", "http://localhost:3000")

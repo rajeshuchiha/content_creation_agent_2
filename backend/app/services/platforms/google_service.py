@@ -11,13 +11,14 @@ from app.schemas.user import UserResponse
 from sqlalchemy import select, delete
 import asyncio
 from app.logger import setup_logger
+from app.config import BACKEND_URI
 
 logger = setup_logger(__name__)
 
 
 CLIENT_SECRETS_FILE = "client_secrets.json"
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
-REDIRECT_URI = "http://localhost:8000/api/auth/google/callback"
+REDIRECT_URI = f"{BACKEND_URI}/api/auth/google/callback"
 
 # def get_authorization_url():
 

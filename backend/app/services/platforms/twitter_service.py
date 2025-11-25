@@ -10,10 +10,11 @@ from sqlalchemy import select, delete
 from datetime import datetime, timedelta
 import tweepy
 from app.logger import setup_logger
+from app.config import BACKEND_URI
 
 logger = setup_logger(__name__)
 
-REDIRECT_URI = "http://localhost:8000/api/auth/twitter/callback"
+REDIRECT_URI = f"{BACKEND_URI}/api/auth/twitter/callback"
 
 oauth_consumer_key = os.environ.get("twitter_API_key")
 oauth_consumer_key_secret = os.environ.get("twitter_API_key_secret")

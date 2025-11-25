@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from datetime import datetime, timedelta
 from app.logger import setup_logger
+from app.config import BACKEND_URI
 
 logger = setup_logger(__name__)
 
-REDIRECT_URI = "http://localhost:8000/api/auth/reddit/callback"
+REDIRECT_URI = f"{BACKEND_URI}/api/auth/reddit/callback"
 
 client_id = os.environ.get("reddit_client_ID")
 client_secret = os.environ.get("reddit_client_secret")
