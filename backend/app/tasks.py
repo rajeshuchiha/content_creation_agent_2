@@ -15,6 +15,9 @@ from app.services.platforms.combined_service import post
 from app.scraper import search
 from app.services.text_generator import run_document_agent
 from app.celery_app import celery
+from app.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 def run_async(coro):
     """
@@ -120,7 +123,7 @@ async def process_questions(questions, categories, current_user_id):
             await session.commit()
         except Exception as e:
             await session.rollback()
-            print("SESSION COMMIT FAILED:", e)
+            logger.exception(f"SESSION COMMIT FAILED: {e}")
             raise
         
         return results        
@@ -139,23 +142,18 @@ async def post_content(result_ids, current_user_id):
             try:
                 rows = await session.scalars(select(Content).filter(Content.id == id))
                 result = rows.first()
-                
+                item = Item.model_validate(result)
+                new_items.append(item)
                 await asyncio.wait_for(
-                    post(current_user, session, result),
+                    post(current_user, session, item),
                     timeout=25  # Prevent infinite hang
                 )
             except Exception as e:
-                print(f"POST FAILED for {result.title}: {e}")
+                logger.warning(f"POST FAILED for {result.title}: {e}")
 
-            new_items.append(Item.model_validate(result))
-
-
-        # the following input must be given to this: 
-        # {1. topic -> retrieve 2."write it in a intruiging way and mention every name, date or time exactly " -> update(optional), 3."save it"}
-    
         print(new_items)
     
-    # return {"Items": new_items}
+    # return {"items": new_items}
 
 # @celery.task(name='app.tasks.search_task')
 @celery.task(bind=False)
@@ -163,8 +161,15 @@ def search_task(query, categories):
     
     data = run_async(search(query, categories))
     
-    titles = [res["title"] for res in data["results"]]
+    if not data["results"]:
+        logger.error("Null results from search task")
+        return {
+            "error": True
+        }
+    
+    titles = [res["title"] for res in data["results"] if res and res.get("title")]
 
+    logger.info(f"search task, produced results: {titles}")
     return {
         "query": query,
         "titles": titles,
@@ -175,6 +180,9 @@ def search_task(query, categories):
 # @celery.task(name='app.tasks.generate_questions')
 @celery.task(bind=False)
 def generate_questions(search_data: dict):
+    
+    if search_data.get("error"):
+        return search_data
     
     titles = search_data["titles"]
     total_num_topics = 2
@@ -188,6 +196,14 @@ def generate_questions(search_data: dict):
 
     questions = [q.strip() for q in questions_text.content.split('\n') if q.strip()]
     
+    if not questions:
+        logger.error("Empty questions from 'generate_questions' task")
+        return {
+            "error": True
+        }
+    
+    logger.info(f"generate questions task produced following questions. {questions}")
+    
     return {
         **search_data,
         "questions": questions
@@ -197,13 +213,18 @@ def generate_questions(search_data: dict):
 @celery.task(bind=False)
 def process_llm(data: dict, current_user_id):
     
+    if data.get("error"):
+        return data
+       
     questions = data["questions"]
     categories = data["categories"]
     
     results = run_async(process_questions(questions, categories, current_user_id)) 
     
     result_ids = [result.id for result in results]
-     
+    
+    logger.info("process_llm successfully executed")
+    
     return {
         "questions": questions,
         "result_ids": result_ids,
@@ -214,6 +235,11 @@ def process_llm(data: dict, current_user_id):
 # @celery.task(name='app.tasks.content_post')
 @celery.task(bind=False)
 def content_post(data: dict, current_user_id):
+    
+    if data.get("error"):
+        return {
+            "status": "failed"
+        }
 
     result_ids = data["result_ids"]
     

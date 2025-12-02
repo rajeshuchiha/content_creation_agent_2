@@ -1,6 +1,7 @@
 import axios from "axios";
+import api_url from "./api_url";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = api_url;     
 
 const api = axios.create({
     baseURL: `${API_URL}/api`,
@@ -30,5 +31,6 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
 
 export default api;

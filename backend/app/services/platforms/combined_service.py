@@ -10,7 +10,8 @@ logger = setup_logger(__name__)
 async def post(current_user, db, item: Item):
     user_id = current_user.id
     
-    result = await db.scalars(select(PlatformCredential).filter(PlatformCredential.user_id == user_id))
+    stmt = select(PlatformCredential).where(PlatformCredential.user_id == user_id)
+    result = await db.scalars(stmt)
     creds = result.all()
     
     for cred in creds:
@@ -21,9 +22,11 @@ async def post(current_user, db, item: Item):
         
             if cred.platform == "reddit":
                 # Add a check function whether to refresh token
+                cred = await reddit_service.check_access_token(cred, db)
                 # reddit_post_dict = json.loads(item.reddit_post)
-                reddit_post_dict = item.reddit_post
-                await reddit_service.postReddit(credentials=cred, title=reddit_post_dict['title'], text=reddit_post_dict['body'])
+                if cred:
+                    reddit_post_dict = item.reddit_post
+                    await reddit_service.postReddit(credentials=cred, title=reddit_post_dict.title, text=reddit_post_dict.body)
                 
             if cred.platform == "blogger":
                 await google_service.postBlog(cred, item.blog_post)

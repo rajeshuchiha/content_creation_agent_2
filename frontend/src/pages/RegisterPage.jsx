@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 
 import { Eye, EyeOff } from "lucide-react";
 
+import api_url from "@/services/api_url";
+
 function Register() {
 
-    const API_URL = import.meta.env.VITE_API_URL;
+    const API_URL = api_url;
 
     const api = axios.create({
         baseURL: `${API_URL}/api`,

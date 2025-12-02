@@ -55,4 +55,6 @@ async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.g
 @router.delete("/user")
 async def delete_user(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
     
-    return await google_service.delete_user(current_user, db)
+    platform = "google"
+    await google_service.revoke_user_access(current_user, db, platform)
+    return await google_service.delete_user(current_user, db, platform)

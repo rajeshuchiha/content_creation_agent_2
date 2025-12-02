@@ -129,7 +129,7 @@ def run_document_agent(current_user: UserResponse, db: AsyncSession, inputs=None
         results = []
         results.append("Search Results: \n")
         for result in data["results"]:
-            if result.get("title") and result.get("content"):
+            if result.get("title").strip() and result.get("content").strip():
                 results.append(f'title: {result["title"]}\ncontent: {result["content"]}\n')
         
         results.append("Scraped Results: \n")

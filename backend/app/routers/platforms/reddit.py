@@ -44,4 +44,5 @@ async def getStatus(current_user: Annotated[UserResponse, Depends(auth_service.g
 @router.delete("/user")
 async def delete_user(current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], db: AsyncSession = Depends(get_db)):
     
-    return await reddit_service.delete_user(current_user, db)
+    platform="reddit"
+    return await reddit_service.delete_user(current_user, db, platform)

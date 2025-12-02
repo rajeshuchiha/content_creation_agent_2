@@ -3,14 +3,15 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import { Route, Routes } from 'react-router-dom'
-import Home from './pages/Home'
-import Login from './pages/LoginPage'
-import Register from './pages/RegisterPage'
-import Dashboard from './pages/DashboardPage'
 import { AuthProvider } from './context/authContext'
 import NavBar from './components/navBar'
 import { PlatformProvider } from './context/platformContext'
 import ProtectedRoute from './auth/ProtectedRoute'
+import Home from './pages/Home'
+import Login from './pages/LoginPage'
+import Register from './pages/RegisterPage'
+import Dashboard from './pages/DashboardPage'
+import History from './pages/HistoryPage'
 
 function App() {
 
@@ -33,6 +34,14 @@ function App() {
               />
               <Route path='/login' element={<Login />} />
               <Route path='/register' element={<Register />} />
+              <Route 
+                path='/history' 
+                element={
+                  <ProtectedRoute>
+                    <History />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </main>
         </div>

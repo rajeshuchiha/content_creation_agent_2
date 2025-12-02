@@ -7,7 +7,7 @@ from app.models.platform_credentials import PlatformCredential
 from app.schemas.user import UserResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import tweepy
 from app.logger import setup_logger
 from app.config import BACKEND_URI
@@ -61,7 +61,7 @@ async def save_credentials(request, db: AsyncSession):
             platform="twitter",
             access_token=access_token,
             refresh_token=access_secret,    # Not refresh_token **Remember**
-            expires_at=datetime.now() + timedelta(days=365)   # Just placeholder
+            expires_at=datetime.now(timezone.utc) + timedelta(days=365)   # Just placeholder
         )
     )
     await db.commit()

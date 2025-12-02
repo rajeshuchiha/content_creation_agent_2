@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 # from app.models.content import Content
 from app.schemas.user import UserResponse
-# from app.schemas.content import Item, ItemsList
+from app.schemas.content import Item, ItemsList
 # from app.services.platforms.combined_service import post
-from app.services import auth_service
+from app.services import auth_service, history
 # from app.scraper import search
 # from app.services.text_generator import run_document_agent
 # from app.celery_app import celery
@@ -22,11 +22,37 @@ from app.tasks import search_task, generate_questions, process_llm, content_post
 from celery import chain
 from app.celery_app import celery
 from app.logger import setup_logger
+from datetime import datetime
 
 logger = setup_logger(__name__)
 
 
 router = APIRouter(prefix='/api/results', tags=["content"])
+
+#   I got an error with history when i wrote this after task_id, since there is router.get("/{task_id}"), history is taken as task_id
+#  ****Always define specific routes before wildcard/parameter routes. Otherwise, the wildcard catches everything!****
+
+@router.get("/history", response_model=ItemsList)
+async def get_history(
+    current_user: Annotated[UserResponse, Depends(auth_service.get_current_active_user)], 
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+      
+    try:
+        logger.info(f"Current User Id: {current_user.id}")
+        results = await history.get_results(current_user.id, db)
+        logger.info(results)
+    
+        # items = {"items": [Item.model_validate(result) for result in results]}    #   This is also correct but there is a direct way
+        items = ItemsList.model_validate({"items": results})
+        
+        return items
+    
+    except Exception as e:
+        logger.error(f"history Route error: {e}")
+        return {"items": []}
+    
+
 
 @router.post("/{query}")
 async def content_gen(
@@ -69,6 +95,9 @@ def get_status(task_id: str):
         "status": result.status,    # PENDING / STARTED / SUCCESS / FAILURE
         "result": result.result     # None until finished
     }
+    
+
+    
     
 # llm = init_chat_model('gemini-2.5-flash', model_provider="google_genai")
 
