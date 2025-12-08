@@ -43,8 +43,8 @@ async def get_history(
         results = await history.get_results(current_user.id, db)
         logger.info(results)
     
-        # items = {"items": [Item.model_validate(result) for result in results]}    #   This is also correct but there is a direct way
-        items = ItemsList.model_validate({"items": results})
+        items = {"items": [Item.model_validate(result) for result in results]}    #   This is also correct but there is a direct way
+        # items = ItemsList.model_validate({"items": results})
         
         return items
     

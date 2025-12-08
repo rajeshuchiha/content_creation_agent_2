@@ -27,36 +27,36 @@ function Content() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        try{
+        try {
             const data = await fetchResults(Query, isNews);
 
             setStatus(data.status)
-            if (data.status !== "failed"){
+            if (data.status !== "failed") {
                 setTaskId(data.task_id)
             }
-            else{
+            else {
                 console.log(data.error)
             }
         }
-        catch(err){
+        catch (err) {
             console.error(err);
         }
-        finally{
+        finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="flex flex-col justify-center items-center">
-            <form 
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
+            <form
                 onSubmit={handleSubmit}
-                className="w-full max-w-md p-6 rounded-xl shadow-md space-y-4"
+                className="w-full max-w-md bg-gray-900/40 p-6 rounded-xl shadow-md shadow-gray-500 space-y-4"
             >
                 <div className="flex items-center gap-2">
                     <Label htmlFor="search">Search </Label>
                     <Input type="text" id="search" value={Query} onChange={(e) => { setQuery(e.target.value) }} />
                 </div>
-            
+
                 <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium text-left">Categories</Label>
 
@@ -67,7 +67,7 @@ function Content() {
                             className={`cursor-pointer border rounded-lg px-4 py-2 transition 
                                 ${!isNews ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
                         >
-                        None
+                            None
                         </div>
 
                         {/* NEWS CARD */}
@@ -76,30 +76,31 @@ function Content() {
                             className={`cursor-pointer border rounded-lg px-4 py-2 transition
                                 ${isNews ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}
                         >
-                        News
+                            News
                         </div>
                     </div>
                 </div>
 
-                
+
                 <Button type="submit" className="bg-primary hover:bg-primary/90 text-sm text-primary-foreground 
                 whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer">
                     Search
                 </Button>
+                <div className="flex justify-center w-full">
+                    {Loading ? <Loader /> :
+                        <div>
+                            <h2>Current Task Id: {TaskId}</h2>
+                            <h3>Status: {Status}</h3>
+                        </div>
+                        // <div className="current-post">
+                        //     {Posts && Posts.map((post) => {
+                        //         return <PostCard key={post.id} post={post} />
+                        //     })}
+                        // </div>
+                    }
+                </div>
             </form>
-            <div className="flex justify-center w-full">
-                {Loading ? <Loader /> :
-                    <div>
-                        <h2>Current Task Id: {TaskId}</h2>
-                        <h3>Status: {Status}</h3>
-                    </div>
-                    // <div className="current-post">
-                    //     {Posts && Posts.map((post) => {
-                    //         return <PostCard key={post.id} post={post} />
-                    //     })}
-                    // </div>
-                }
-            </div>
+
         </div>
     );
 }

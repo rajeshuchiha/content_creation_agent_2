@@ -85,7 +85,7 @@ async def postTweet(credentials: PlatformCredential, tweet):
 
     try:
         response = client.create_tweet(text=tweet)
-        logger.info("Tweet posted! ID:", response.data["id"])
+        logger.info(f"Tweet posted! ID: {response.data['id']}")
             
     except Exception as e:
         logger.error(f"Twitter Request failed: {e}")

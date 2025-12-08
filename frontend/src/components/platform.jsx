@@ -17,7 +17,9 @@ function Platform({ name }) {
             {enabled && <span>Enabled</span>}
             <Button
                 onClick={() => {togglePlatforms(platform)}}
-                style={{ marginLeft: "8px" }}
+                style={{ marginLeft: "18px" }}
+                className="bg-primary hover:bg-primary/90 text-sm text-primary-foreground 
+                    whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
             >
                 {enabled ? "Disable" : "Enable"}
             </Button>

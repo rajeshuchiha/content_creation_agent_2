@@ -28,8 +28,8 @@ async def post(current_user, db, item: Item):
                     reddit_post_dict = item.reddit_post
                     await reddit_service.postReddit(credentials=cred, title=reddit_post_dict.title, text=reddit_post_dict.body)
                 
-            if cred.platform == "blogger":
-                await google_service.postBlog(cred, item.blog_post)
+            if cred.platform == "google":
+                await google_service.postBlog(cred, db, item.blog_post)
     
         except Exception as e:
             logger.exception(f"Error: {e}")

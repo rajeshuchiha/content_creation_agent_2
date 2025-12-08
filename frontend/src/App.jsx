@@ -12,6 +12,7 @@ import Login from './pages/LoginPage'
 import Register from './pages/RegisterPage'
 import Dashboard from './pages/DashboardPage'
 import History from './pages/HistoryPage'
+import { AppLayout, FullPageLayout } from './layouts'
 
 function App() {
 
@@ -19,29 +20,36 @@ function App() {
     <AuthProvider>
       <PlatformProvider>
         <div>
-          <NavBar />
+          {/* <NavBar /> */}
           <main className='main-content'>
             <Routes>
-              <Route path='/' element={<Home />} />
-              <Route 
-                path='/dashboard' 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                  // <Dashboard />
-                } 
-              />
-              <Route path='/login' element={<Login />} />
-              <Route path='/register' element={<Register />} />
-              <Route 
-                path='/history' 
-                element={
-                  <ProtectedRoute>
-                    <History />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route element={<FullPageLayout />}>
+                <Route path='/' element={<Home />} />
+                <Route path='/login' element={<Login />} />
+                <Route path='/register' element={<Register />} />
+              </Route>
+
+              <Route element={<AppLayout />}>
+                <Route
+                  path='/dashboard'
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                    // <Dashboard />
+                  }
+                />
+                <Route
+                  path='/history'
+                  element={
+                    <ProtectedRoute>
+                      <History />
+                    </ProtectedRoute>
+                    // <History />
+                  }
+                />
+              </Route>
+
             </Routes>
           </main>
         </div>

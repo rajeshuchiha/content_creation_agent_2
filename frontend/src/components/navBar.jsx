@@ -9,10 +9,11 @@ import { Button } from "./ui/button";
 
 import { useAuthContext } from "@/context/authContext";
 
-export default function Navbar() {
+export default function Navbar({ variant }) {
 
   const { User, logout, Loading } = useAuthContext();
   const navigate = useNavigate();
+  const isTransparent = variant === "transparent";
 
   const handleLogout = () => {
     logout();
@@ -20,28 +21,49 @@ export default function Navbar() {
   }
 
   if (Loading) {
-    return <div></div>;
+    return <div className="h-16"></div>;
   }
 
   return (
-    <nav>
-      <div className="max-w-6xl mx-auto px-6 py-3 flex justify-between items-center font-medium">
+    <nav className={`${isTransparent ? '' : 'bg-white dark:bg-black'}`}>
+      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center font-medium">
         {/* Left side */}
         <NavigationMenu>
           <NavigationMenuList className="flex items-center space-x-6">
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 {User ? (
-                  <Link to="/dashboard">Dashboard</Link>
+                  <Link to="/dashboard" className={
+                    isTransparent
+                      ? 'text-white/90 hover:text-white transition'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
+                  }
+                  >
+                    Dashboard
+                  </Link>
                 ) :
-                  <Link to="/">Home</Link>
+                  <Link to="/" className={
+                    isTransparent
+                      ? 'text-white/90 hover:text-white transition'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
+                  }
+                  >
+                    Home
+                  </Link>
                 }
               </NavigationMenuLink>
             </NavigationMenuItem>
             {User && (
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to="/history">History</Link>
+                  <Link to="/history" className={
+                    isTransparent
+                      ? 'text-white/90 hover:text-white transition'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
+                  }
+                  >
+                    History
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             )}
@@ -51,26 +73,51 @@ export default function Navbar() {
 
         {/* Right side */}
         {User ? (
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4">
+            <span className={
+              isTransparent
+                ? 'text-white/80 text-sm'
+                : 'text-gray-600 dark:text-gray-400 text-sm'
+            }
+            >
+              {User.email}
+            </span>
             <Button
               onClick={handleLogout}
-              className="bg-primary hover:bg-primary/90 text-sm text-primary-foreground 
-                        whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer">
+              variant={isTransparent ? "outline" : "default"}
+              className={
+                isTransparent
+                  ? 'border-white/30 text-white hover:bg-white/10'
+                  : ''
+              }
+            // className="bg-primary hover:bg-primary/90 text-sm text-primary-foreground 
+            //           whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+            >
               Logout
             </Button>
           </div>
         ) :
           (
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               <Link
                 to="/login"
-                className="text-gray-700 dark:text-gray-200 hover:text-blue-600"
+                // className="text-gray-700 dark:text-gray-200 hover:text-blue-600"
+                className={
+                  isTransparent
+                    ? 'text-white/90 hover:text-white transition'
+                    : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
+                }
               >
                 Login
               </Link>
               <Link
                 to="/register"
-                className="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                // className="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                className={
+                  isTransparent
+                    ? 'px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition'
+                    : 'px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition'
+                }
               >
                 Register
               </Link>

@@ -10,6 +10,7 @@ function History() {
         async function fetchResults() {
             try{
                 const res = await api.get("/results/history");
+                console.log(res.data)
                 setResults(res.data.items);
             }
             catch{

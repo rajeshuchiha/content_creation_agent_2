@@ -1,225 +1,218 @@
 import os
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import Flow
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google.auth.exceptions import RefreshError
 from app.models.platform_credentials import PlatformCredential
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.user import UserResponse
 from sqlalchemy import select, delete
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 import httpx
+import secrets
+from urllib.parse import urlencode
 from app.logger import setup_logger
 from app.config import BACKEND_URI
+from datetime import timezone, datetime, timedelta
+import re
 
 logger = setup_logger(__name__)
 
-
-CLIENT_SECRETS_FILE = "client_secrets.json"
 SCOPES = ["https://www.googleapis.com/auth/blogger"]
 REDIRECT_URI = f"{BACKEND_URI}/api/auth/google/callback"
 
 CLIENT_ID=os.getenv("GOOGLE_CLIENT_ID")
 CLIENT_SECRET=os.getenv("GOOGLE_CLIENT_SECRET")
 
-executor = ThreadPoolExecutor(max_workers=5)
-
-# def get_authorization_url():
-
-# def postBlog(text):
-
-#     creds = None
-
-#     if os.path.exists("tokens.json"):
-#         creds = Credentials.from_authorized_user_file('tokens.json', scopes=["https://www.googleapis.com/auth/blogger"])
-        
-#     if not creds or not creds.valid:
-        
-#         try:
-#             if creds and creds.expired and creds.refresh_token:
-#                 creds.refresh(Request())
-#             else:
-#                 raise RefreshError("Invalid or missing refresh token")
-        
-#         except RefreshError:
-#             flow = InstalledAppFlow.from_client_secrets_file(
-#                 'client_secret.json',
-#                 scopes=["https://www.googleapis.com/auth/blogger"]
-#             )
-
-#             creds = flow.run_local_server(port=0)
-
-#             with open("tokens.json", "w") as file:
-#                 file.write(creds.to_json())
-
-#     try:
-#         service = build("blogger", "v3", credentials=creds)
-
-#         blog_id = "3115491518418580833"
-
-#         post_body = {
-#             "kind": "blogger#post",
-#             "blog":{
-#                 "id": blog_id
-#             },
-#             "title": "Test Post",
-#             "content": text,
-#             "labels": ['test', 'first']
-#         }
-#         new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
-
-#         print(f"The new post is at url: {new_post['url']}")
-        
-#     except HttpError as error:
-#         print(f"An error Occurred: {error}")
+# OAuth endpoints
+AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
 def get_authorization_url():
-    # flow = Flow.from_client_secrets_file(
-    #     CLIENT_SECRETS_FILE,
-    #     scopes=SCOPES,
-    #     redirect_uri=REDIRECT_URI
-    # )
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "redirect_uris": [REDIRECT_URI],
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token"
-            }
-        },
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI,
-    )
-    return flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="true",
-        prompt="select_account"     # prompt="consent"
-    )
     
-        
-async def save_credentials(request: Request, db: AsyncSession):
+    state = secrets.token_urlsafe(32)  # CSRF protection
+    
+    params = {
+        "client_id": CLIENT_ID,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",  # Get refresh token
+        "prompt": "select_account",
+        "state": state,
+    }
+    
+    auth_url = f"{AUTH_URL}?{urlencode(params)}"
+    return auth_url, state
+    
+async def save_credentials(request, db: AsyncSession):
     
     user_id = request.session.get("user_id")
+    code = request.query_params.get("code")
+        
+    data = {
+        "code": code,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+        
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url=TOKEN_URL, data=data)
+        response.raise_for_status()
+        credentials = response.json()
     
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "client_id": CLIENT_ID,
-                "client_secret": CLIENT_SECRET,
-                "redirect_uris": [REDIRECT_URI],
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token"
-            }
-        },
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI,
-    )
-
-    flow.fetch_token(authorization_response=str(request.url))
-    credentials = flow.credentials
+    #   Ensure timezone-aware
+    expires_in = credentials.get("expires_in", 3600)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+    
+    logger.info(f"expires_at from DB: {expires_at}, tzinfo: {expires_at.tzinfo if expires_at else None}")
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     
     db.add(
         PlatformCredential(
             user_id=user_id,
             platform="google",
-            access_token=credentials.token,
-            refresh_token=credentials.refresh_token,
-            expires_at=credentials.expiry
+            access_token=credentials["access_token"],
+            refresh_token=credentials.get("refresh_token"),  # may or may not have refresh_token
+            expires_at=expires_at
         )
     )
     await db.commit()
     
     return credentials
-        
-async def postBlog(user_creds: PlatformCredential, db: AsyncSession, text):   
-   
-    creds = Credentials(
-        token=user_creds.access_token, 
-        refresh_token=user_creds.refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        scopes=SCOPES
-    )
-    
-    def blogger_sync():
-        
-        try:
-            service = build("blogger", "v3", credentials=creds)
-            
-            blogs = service.blogs().listByUser(userId="self").execute()
-            results = []        # for printing
 
-            for blog in blogs.get("items", []):     # later give choice to choose the blogs
-                blog_id = blog["id"]
-                post_body = {
-                    "kind": "blogger#post",
-                    "title": "Test Post",
-                    "content": text,
-                    "labels": ['test', 'first']
-                }
-                new_post = service.posts().insert(blogId = blog_id, body=post_body, isDraft=False).execute()
-                
-                results.append(new_post['url'])
-                
-            return {
-                'success': True,
-                'results': results, 
-                'access_token': creds.token,
-                'refresh_token': creds.refresh_token,
-                'expiry': creds.expiry
-            }
-            
-        except RefreshError as e:
-            logger.error(f"Token Refresh failed: {e}")
-            return {
-                'success': False,
-                'error': 'refresh_failed',
-                'msg': str(e)
-            }
-            
-        except HttpError as e:
-            logger.error(f"HTTP error: {e}")
-            return {
-                'success': False,
-                'error': 'http_error',
-                'msg': str(e)
-            }
+async def refresh_access_token(user_creds: PlatformCredential, db: AsyncSession, refresh_token: str):
+
+    data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(TOKEN_URL, data=data)
+        response.raise_for_status()
+        token_data = response.json()
+    
+    # Calculate new expiry time
+    expires_in = token_data.get("expires_in", 3600)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+    
+    user_creds.access_token = token_data["access_token"]
+    user_creds.expires_at = token_data["expires_at"]
+    if token_data["refresh_token"]:
+        user_creds.refresh_token = user_creds.refresh_token
         
+    await db.commit()
+    
+    return {
+        "access_token": token_data["access_token"],
+        "refresh_token": token_data.get("refresh_token"),  # Sometimes Google returns new refresh token
+        "expires_at": expires_at,
+    }
+    
+async def get_user_blogs(access_token: str):
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://www.googleapis.com/blogger/v3/users/self/blogs",
+            headers=headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+def parse_text(text: str):
+    
+    # Extract h1 text
+    h1_match = re.search(r'<h1>(.*?)</h1>', text, re.IGNORECASE)
+    title = h1_match.group(1) if h1_match else "Untitled Post"
+
+    # Remove h1 from content
+    content = re.sub(r'<h1>.*?</h1>', '', text, count=1, flags=re.IGNORECASE).strip()
+
+    return title, content
+        
+async def post_to_blog(access_token: str, blog_id: str, title: str, content: str):
+    
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    
+    post_data = {
+        "kind": "blogger#post",
+        "title": title,
+        "content": content,
+    }
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"https://www.googleapis.com/blogger/v3/blogs/{blog_id}/posts",
+            headers=headers,
+            json=post_data
+        )
+        response.raise_for_status()
+        return response.json()
+        
+async def postBlog(user_creds: PlatformCredential, db: AsyncSession, text: str):   
+   
+    expires_at = user_creds.expires_at
+    logger.info(f"expires_at from DB: {expires_at}, tzinfo: {expires_at.tzinfo if expires_at else None}")
+    
+    if expires_at and expires_at.tzinfo is None:
+        logger.info("Converting naive datetime to UTC")
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    logger.info(f"expires_at after fix: {expires_at}, tzinfo: {expires_at.tzinfo if expires_at else None}")
+    
+    refresh_token = user_creds.refresh_token
+    access_token = user_creds.access_token
+    
+    now = datetime.now(timezone.utc)
+    is_expired = expires_at and now >= expires_at
+    
+    if is_expired and refresh_token:
+        try:
+            token_data = refresh_access_token(user_creds, db, refresh_token)
+            access_token = token_data["access_token"]
+            
         except Exception as e:
-            logger.error(f"Unexpected Error in blogger_sync: {e}")
-            return {
-                'success': False,
-                'error': 'unknown',
-                'msg': str(e)
-            }
+            logger.error(f"Token refresh failed: {e}")
+            raise
+        
+    #   Posting 
     
     try:
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(executor, blogger_sync)
+        blogs_data = await get_user_blogs(access_token)
+        blogs = blogs_data.get("items", [])
         
-        if not response['success']:
-            if response['error'] == 'refresh_failed':
-                raise RefreshError(f"Token refresh failed: {response['message']}")
-            else:
-                raise Exception(f"{response['error']}: {response['message']}")
+        results = []
+        for blog in blogs:
+            blog_id = blog["id"]
             
-        user_creds.access_token = response['access_token']
-        user_creds.refresh_token = response['refresh_token']
-        await db.commit()
+            title, content = parse_text(text)
             
-        for url in response['results']:
-            logger.info(f"The new post is at url: {url}")
+            post_result = await post_to_blog(
+                access_token, 
+                blog_id, 
+                title, 
+                content
+            )
+            results.append(post_result.get("url"))
+            logger.info(f"Posted to blog: {post_result.get('url')}")
         
-    except HttpError as error:
-        logger.error(f"An error in 'postBlog' Occurred: {error}")
+        # return {"success": True, "results": results}
     
+    except Exception as e:
+        logger.error(f"Error posting blog: {e}")
+        # return {"success": False, "error": str(e)}
         
+       
 async def check_status(current_user: UserResponse, db: AsyncSession):
     platform = "google"
     res = await db.scalars(select(PlatformCredential).where(

@@ -94,15 +94,15 @@ async def process_questions(questions, categories, current_user_id):
                 ]
                 
                 output = await run_in_threadpool(run_document_agent, current_user, session, inputs=inputs, auto=True, categories=categories) #   Second
-                
+                logger.info(f"\nOutput of text_generator\n: {output}")
                 await asyncio.sleep(8)
                 
                 #   Add to Content db
-                raw = output.get("reddit_post", "{}")
+                raw = output.get("reddit_post", {"title": "", "body": ""})
                 try:
                     reddit_data = json.loads(raw)
                 except json.JSONDecodeError:
-                    reddit_data = {}  
+                    reddit_data = {"title": "", "body": ""}  
                 
                 result = Content(
                     user_id = current_user.id,

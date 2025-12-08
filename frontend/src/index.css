@@ -53,6 +53,18 @@
     font-family: var(--font-sans);
     background-color: var(--background);
     color: var(--foreground);
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  html,
+  body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
   }
   /* input {
     background-color: var(--input-background);
