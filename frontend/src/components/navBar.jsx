@@ -5,7 +5,6 @@ import {
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
 import { Link, useNavigate } from "react-router-dom";
-import { Button } from "./ui/button";
 
 import { useAuthContext } from "@/context/authContext";
 
@@ -33,20 +32,20 @@ export default function Navbar({ variant }) {
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 {User ? (
-                  <Link to="/dashboard" className={
+                  <Link to="/dashboard" className={`transition ${
                     isTransparent
-                      ? 'text-white/90 hover:text-white transition'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
-                  }
+                      ? 'text-white/90 hover:text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  }`}
                   >
                     Dashboard
                   </Link>
                 ) :
-                  <Link to="/" className={
+                  <Link to="/" className={`transition ${
                     isTransparent
-                      ? 'text-white/90 hover:text-white transition'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition'
-                  }
+                      ? 'text-white/90 hover:text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  }`}
                   >
                     Home
                   </Link>
@@ -80,25 +79,26 @@ export default function Navbar({ variant }) {
                 : 'text-gray-600 dark:text-gray-400 text-sm'
             }
             >
-              {User.email}
+              {User.username}
             </span>
-            <Button
+            <button
               onClick={handleLogout}
               variant={isTransparent ? "outline" : "default"}
-              className={
-                isTransparent
-                  ? 'border-white/30 text-white hover:bg-white/10'
-                  : ''
+              className={`cursor-pointer ${
+                  isTransparent
+                  ? 'px-4 py-2 rounded-lg border border-white/30 text-white hover:bg-white/10 transition'
+                  : 'px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition'
+                }`
               }
             // className="bg-primary hover:bg-primary/90 text-sm text-primary-foreground 
             //           whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
             >
               Logout
-            </Button>
+            </button>
           </div>
         ) :
           (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <Link
                 to="/login"
                 // className="text-gray-700 dark:text-gray-200 hover:text-blue-600"

@@ -73,11 +73,16 @@ async def content_gen(
         
         result = workflow.apply_async()
         
-        return {
-            "status": result.status,
-            "task_id": result.id
-        }
-
+        if(result.status == "PENDING"):
+            return {
+                "status": "started",
+                "task_id": result.id
+            }
+        else:
+            return {
+                "status": "failed"
+            }
+            
     except Exception as e:
         logger.exception(f"Task Error: {e}")
         return {

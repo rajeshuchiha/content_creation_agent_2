@@ -12,8 +12,14 @@ export const PlatformProvider = ({ children }) => {
         "reddit": false,
         "google": false
     });
-    const { User } = useAuthContext()
+    // const [PlatfromLoading, setPlatfromLoading] = useState({
+    //     "twitter": false,
+    //     "reddit": false,
+    //     "google": false
+    // });
 
+    const { User } = useAuthContext();
+    
     useEffect(() => {
         if (!User) return;
 
@@ -41,26 +47,31 @@ export const PlatformProvider = ({ children }) => {
     const togglePlatforms = async (platform) => {
 
         const newValue = !Platforms[platform];
+        // setPlatformLoading((prev) => ({ ...prev, [platform]: newValue }));
+
         setPlatforms((prev) => ({ ...prev, [platform]: newValue }));
 
         try {
             if (newValue) {
-                const { data } = await api.get(`/auth/${platform}/authorize`)
-                window.location.href = data.auth_url
+                const { data } = await api.get(`/auth/${platform}/authorize`);
+                window.location.href = data.auth_url;
             }
             else {
                 const { data } = await api.delete(`/auth/${platform}/user`);
-                console.log(data)
+                console.log(data);
             }
 
         } catch (err) {
             console.error("API error", err);
             // optionally revert state if API fails
             setPlatforms((prev) => ({ ...prev, [platform]: !newValue }));
+        } finally {
+            // setLoading(false); 
         }
     };
 
     const value = {
+        // Loading,
         Platforms,
         togglePlatforms
     };

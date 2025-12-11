@@ -27,25 +27,25 @@ function App() {
                 <Route path='/' element={<Home />} />
                 <Route path='/login' element={<Login />} />
                 <Route path='/register' element={<Register />} />
+                <Route
+                  path='/history'
+                  element={
+                    // <ProtectedRoute>
+                    //   <History />
+                    // </ProtectedRoute>
+                    <History />
+                  }
+                />
               </Route>
 
               <Route element={<AppLayout />}>
                 <Route
                   path='/dashboard'
                   element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                    // <Dashboard />
-                  }
-                />
-                <Route
-                  path='/history'
-                  element={
-                    <ProtectedRoute>
-                      <History />
-                    </ProtectedRoute>
-                    // <History />
+                    // <ProtectedRoute>
+                    //   <Dashboard />
+                    // </ProtectedRoute>
+                    <Dashboard />
                   }
                 />
               </Route>
@@ -57,13 +57,5 @@ function App() {
     </AuthProvider>
   )
 }
-
-// function App() {
-//   return (
-//     <div style={{ padding: '20px', background: 'lightblue' }}>
-//       <h1 style={{ color: 'black' }}>Hello App</h1>
-//     </div>
-//   );
-// }
 
 export default App
